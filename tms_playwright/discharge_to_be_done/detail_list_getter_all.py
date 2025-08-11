@@ -339,9 +339,9 @@ class AllListGenerator:
     #     gspread_dataframe.set_with_dataframe(g_worksheet, df_cleaned)
     #     print(df_cleaned)
 
-    def upload_in_g_sheet(self, sheet_name):
+    def upload_in_g_sheet(self, sheet_name, excel_workbook_path= r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx"):
         # Excel data getting
-        excel_workbook_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx"
+        # excel_workbook_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx"
         df = pd.read_excel(excel_workbook_path, sheet_name=sheet_name,
                            dtype=str)  # Read as string to preserve empty cells
 
@@ -390,9 +390,9 @@ class AllListGenerator:
 
         print(df_cleaned)
 
-    def upload_in_g_sheet_new(self, sheet_name):
+    def upload_in_g_sheet_new(self, sheet_name,excel_workbook_path= r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx"):
         # Excel data getting
-        excel_workbook_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx"
+        # excel_workbook_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx"
         df = pd.read_excel(excel_workbook_path, sheet_name=sheet_name,
                            dtype=str)  # Read as string to preserve empty cells
 

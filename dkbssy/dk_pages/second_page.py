@@ -3,7 +3,7 @@ import sys
 import time
 
 import openpyxl
-from selenium.common import TimeoutException
+from selenium.common import TimeoutException, ElementClickInterceptedException
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
@@ -70,7 +70,11 @@ class SecondPage(Page):
             web_incentive_case_text = web_incentive_case.text
             ColourPrint.print_green("Web-item case number", web_incentive_case_text)
             if web_incentive_case_text == case_number:
-                web_incentive_case.click()
+                try:
+                    web_incentive_case.click()
+                except ElementClickInterceptedException:
+                    web_incentive_case.click()
+
         except TimeoutException:
             sys.exit(f'''ALREADY INCENTIVE ENTRY DONE FOR THE INCENTIVE CASE NUMBER - {case_number}''')
 
@@ -82,9 +86,12 @@ class SecondPage(Page):
         browser = await play.chromium.connect_over_cdp('http://localhost:9222')
         context = browser.contexts[0]
         page = context.pages[0]
+
+        page.set_default_timeout(300000)
+
         await page.goto(self.second_page_url)
         # await page.wait_for_selector(self.waiting_element_neonatal)
-        await page.select_option(self.speciality_DD_xpath, depart_choice)
+        await page.select_option(self.speciality_DD_xpath, depart_choice)   
         await page.locator(self.from_date_xpath).fill(from_date)
         await page.locator(self.to_date_xpath).fill(to_date)
         await page.locator(self.search_button_xpath).click()

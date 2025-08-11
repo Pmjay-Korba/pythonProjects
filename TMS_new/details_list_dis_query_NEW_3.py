@@ -550,6 +550,7 @@ class AllListGenerator:
                     for_print = "$".join(case_num_data)
                     print(idx, for_print)
                     master_to_save_in_excel.append(case_num_data)
+                    ColourPrint.print_yellow(master_to_save_in_excel)
                     page.wait_for_load_state("networkidle")
                     time.sleep(2)
                     # going homepage

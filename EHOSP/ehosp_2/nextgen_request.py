@@ -4,8 +4,9 @@ import urllib.parse
 import openpyxl
 from playwright.sync_api import sync_playwright
 from EHOSP.ehosp_2.ui_method import nextgen_ui
-from EHOSP.ehospital_proper.colour_print_ehosp import ColourPrint
-
+from dkbssy.utils.colour_prints import ColourPrint, message_box
+from EHOSP.tk_ehosp.alert_boxes import error_tk_box
+from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async
 
 WARDS = [
     {'ward_id': 4052, 'ward_name': 'New Ward', 'ward_type': 'General ward', 'active_status': 1, 'sex_id': 'B', 'location_id': None},
@@ -35,7 +36,11 @@ def validate_ipd_as_correct_in_excel(ipd_number):
         ipd_number_integer = int(ipd_number)
         return ipd_number_integer
     except ValueError:
-        raise ValueError(f'The IPD number -> {ipd_number} is not correct format. Except number digit no character is allowed')
+        invalid_ipd_number_error = f'The IPD number -> {ipd_number} is not correct format. Only numerical digits are allowed in IPD number'
+        error_tk_box(
+            error_title='Invalid IPD Number',
+            error_message=invalid_ipd_number_error)
+        raise ValueError(invalid_ipd_number_error)
 
 def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, whole_active_patients_data, user_id, context):
 
@@ -127,7 +132,7 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
                             "health_facility_id": each_patient_details["health_facility_id"],
                             "ward_id": each_patient_details["ward_id"],
                             "bed_id": each_patient_details["bed_id"],
-                            "dis_initiated_by": "Neha_701336",
+                            "dis_initiated_by": user_id,
                             "dis_type": 1,
                             "ipd_doc": each_patient_details["ipd_doctor_id"]
                         }
@@ -266,10 +271,18 @@ def check_discharge_date_range(each_patient_summary_json:dict, single_dischargea
         return datetime.datetime.combine(datetime_discharge_date.date(), datetime.time(23, 59, 59))
 
     elif datetime_discharge_date < datetime_admission_date:
-        raise ValueError(f"The discharge date {datetime_discharge_date.strftime('%d/%m/%Y %H:%M:%S')} is BEFORE the admission date -> {admission_date}. Discharge date must be later than admission date.")
+        dis_before_adm_date_error = f"The discharge date in IPD: {single_dischargeable_ipd[0]} -> {datetime_discharge_date.strftime('%d/%m/%Y %H:%M:%S')} is BEFORE the admission date -> {admission_date}. Discharge date must be later than admission date."
+        error_tk_box(
+            error_title="Discharge Date Error",
+            error_message=dis_before_adm_date_error)
+        raise ValueError(dis_before_adm_date_error)
 
     elif datetime_discharge_date >= datetime.datetime.now():
-        raise ValueError(f"The discharge date {datetime_discharge_date.strftime('%d/%m/%Y %H:%M:%S')} is AFTER the TODAY date. Discharge date must not be more than today.")
+        dis_mor_than_today_error = f"The discharge date in IPD: {single_dischargeable_ipd[0]} -> {datetime_discharge_date.strftime('%d/%m/%Y %H:%M:%S')} is AFTER the TODAY date. Discharge date must not be more than today."
+        error_tk_box(
+            error_title='Discharge Date Error',
+            error_message=dis_mor_than_today_error)
+        raise ValueError(dis_mor_than_today_error)
     return datetime_discharge_date
 
 
@@ -326,6 +339,8 @@ def select_matching_ipd_from_active_patient_list_return_ward_id(ipd_number_integ
             print('Name:', individual_patient_data['full_name'],'|', 'IPD:', individual_patient_data['ipdid'], '|', 'ward name: ', individual_patient_data["ward_name"], '|', 'Admission Date:', individual_patient_data["admission_date"])
             ColourPrint.print_turquoise('()'*50)
             return patient_ward_id_is
+    error_tk_box(error_title='Error',
+                 error_message=f'The ward name and ID could not be fetched from website for IPD:{ipd_number_integer}. Check IPD number is correct, or the IPD might be already discharged. ')
     raise ValueError(f'The ward name and ID could not be fetched from website for IPD:{ipd_number_integer}')
 
 
@@ -375,6 +390,9 @@ def fetch_excel(workbook_path):
 
         # ── 2. Key missing but some value(s) filled in ────────────────────────────────
         if key is None:
+            error_tk_box(error_title='Excel Sheet Entry Error',
+                         error_message=f"TREATMENT sheet ‑ row {excel_row_num}: Code (first cell) is empty but one or more value cells are not → {values}"
+                         )
             raise KeyError(
                 f"TREATMENT sheet ‑ row {excel_row_num}: Code (first cell) is empty "
                 f"but one or more value cells are not → {values}"
@@ -382,6 +400,8 @@ def fetch_excel(workbook_path):
 
         # ── 3. Key present but at least one value is missing ──────────────────────────
         if any(v is None for v in values):
+            error_tk_box(error_title='Excel Sheet Entry Error',
+                         error_message=f"TREATMENT sheet ‑ row no. {excel_row_num}: Code number -> '{key}' has missing data in one or more value cells → {values}")
             raise ValueError(
                 f"TREATMENT sheet ‑ row no. {excel_row_num}: Code number -> '{key}' has missing "
                 f"data in one or more value cells → {values}"
@@ -399,7 +419,7 @@ def fetch_excel(workbook_path):
         if each_row[0] is not None:
             each_row_list = list(each_row)
             new_each_row_list =[each_row[0]]  # new list for fresh entry of modified each data
-            # print(each_row_list)
+            print('each row list', each_row_list)
 
             """making changes to discharge date"""
             discharge_date_verified = validate_discharge_date(each_row_list)
@@ -413,7 +433,11 @@ def fetch_excel(workbook_path):
                 try:
                     multi_diag_list.append(diagnosis_dict[each_diag_codes.lower().strip()])
                 except KeyError:
-                    raise KeyError(f'The DIAGNOSIS code -> "{each_diag_codes}" in IPD: {each_row_list[0]} is not present in DIAG_CODE EXCEL SHEET. Please Check')
+                    diagnosis_key_error_message = f'The DIAGNOSIS code -> "{each_diag_codes}" in IPD: {each_row_list[0]} is not present in DIAG_CODE EXCEL SHEET. Please Check'
+                    error_tk_box(error_title="Diagnosis Code Error",
+                                 error_message=diagnosis_key_error_message)
+                    raise KeyError(diagnosis_key_error_message)
+
             """Place here the ICD code update function"""
 
 
@@ -448,9 +472,15 @@ def validate_and_split_multi_diagnosis_new(each_row_list:list):
         if type(diagnosis_code) == str:
             return diagnosis_code.split(',')  # non lower containing
         else:
-            raise ValueError(f'The DIAGNOSIS code -> "{diagnosis_code}" is invalid in IPD: {each_row_list[0]}. It must be alphabet ot two character like aa, bb')
+            err_msg= f'The DIAGNOSIS code -> "{diagnosis_code}" is invalid in IPD: {each_row_list[0]}. It must be alphabet ot two character like aa, bb'
+            error_tk_box(error_title='Excel Diagnosis Error',
+                         error_message=err_msg)
+            raise ValueError(err_msg)
     else:
-        raise ValueError(f'No DIAGNOSIS code provided in IPD: {each_row_list[0]}')
+        no_diagnosis_err_msg = f'No DIAGNOSIS code provided in MAIN Sheet in IPD: {each_row_list[0]}'
+        error_tk_box(error_title="Main Sheet Diagnosis Error",
+                     error_message=no_diagnosis_err_msg)
+        raise ValueError(no_diagnosis_err_msg)
 
 
 def validate_treatment_codes_new(each_row_list:list):
@@ -458,19 +488,41 @@ def validate_treatment_codes_new(each_row_list:list):
     if treatment_code:
         if type(treatment_code) == int:
             return treatment_code
+        elif type(treatment_code) == str and treatment_code.isdigit():
+            return int(treatment_code)
         else:
-            raise  ValueError(f'The Provided TREATMENT code is not correct in IPD: {each_row_list[0]}. Provide the digits only in codes')
+            incorrect_treat_code_error = f'The Provided TREATMENT code is not correct in IPD: {each_row_list[0]}. Provide the digits only in codes'
+            error_tk_box(error_title="Treatment Code Error",
+                         error_message=incorrect_treat_code_error)
+            raise  ValueError(incorrect_treat_code_error)
     else:
-        raise ValueError(f'No TREATMENT code provided in IPD: {each_row_list[0]}')
+        no_treatment_provided_error = f'No TREATMENT code provided in IPD: {each_row_list[0]}'
+        error_tk_box(error_title="Treatment Code Error",
+                     error_message=no_treatment_provided_error)
+        raise ValueError(no_treatment_provided_error)
 
 
 def yyyy_date_from_yy(yy_char_only:str, each_row_list)->str:  # ie only '25 or '2025'
+    year = None
     if len(yy_char_only) == 2:
-        return '20'+yy_char_only
+        year =  '20'+yy_char_only
     elif len(yy_char_only) == 4:
-        return yy_char_only
+        year =  yy_char_only
     else:
-        raise ValueError(f'The DISCHARGE DATE YEAR -> "{yy_char_only}" is invalid in IPD: {each_row_list[0]}. Must be like either "25" or "2025"')
+        year_format_error = f'The DISCHARGE DATE "YEAR" -> "{yy_char_only}" is invalid in IPD: {each_row_list[0]}. Must be like either "25" or "2025"'
+        error_tk_box(error_title="Discharge Date Error",
+                     error_message=year_format_error)
+        raise ValueError(year_format_error)
+
+    current_year = datetime.datetime.now().year
+    current_year_int = int(current_year)
+    if int(year) >  current_year_int:
+        over_year_date_error = f'The "YEAR" in Discharge date in IPD: {each_row_list[0]} -> {yy_char_only} is greater then current year, which is not possible. Please Check'
+        error_tk_box(error_title="Discharge Date Error",
+                     error_message= over_year_date_error)
+        raise ValueError(over_year_date_error)
+
+    return year
 
 def validate_discharge_date(each_row_list):
     discharge_date =  each_row_list[1]
@@ -499,7 +551,10 @@ def validate_discharge_date(each_row_list):
                 discharge_dt = get_oblique_date(discharge_date, each_row_list)
 
             else:
-                raise ValueError(f'The DISCHARGE DATE -> "{discharge_date}" provided is in incorrect format in IPD: {each_row_list[0]}.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today')
+                wrong_dis_date_format_error = f'The DISCHARGE DATE -> "{discharge_date}" provided is in incorrect format in IPD: {each_row_list[0]}.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today'
+                error_tk_box(error_title="Discharge Date Error",
+                             error_message=wrong_dis_date_format_error)
+                raise ValueError(wrong_dis_date_format_error)
 
 
             # formatted_discharge_dt = process_date_time(discharge_dt)
@@ -507,14 +562,19 @@ def validate_discharge_date(each_row_list):
             # print(formatted_discharge_dt)
             # ColourPrint.print_pink("=.-"*50)
         else:
-            raise ValueError(f'The DISCHARGE DATE -> "{discharge_date}" provided is invalid for ID: {each_row_list[0]}. Use proper date format.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today')
-
+            invalid_discharge_DATE_error = f'The DISCHARGE DATE -> "{discharge_date}" provided is invalid for ID: {each_row_list[0]}. Use proper date format.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today'
+            error_tk_box(error_title='INVALID DISCHARGE DATE ERROR',
+                         error_message=invalid_discharge_DATE_error)
+            raise ValueError(invalid_discharge_DATE_error)
         # formatted_discharge_date = process_date_time(discharge_dt)
 
         return discharge_dt
 
     else:
-        raise ValueError(f'No DISCHARGE DATE provided in IPD: {each_row_list[0]}')
+        no_discharge_date_provided_error = f'No DISCHARGE DATE provided in IPD: {each_row_list[0]}'
+        error_tk_box(error_title="No Discharge Date Error",
+                     error_message=no_discharge_date_provided_error)
+        raise ValueError(no_discharge_date_provided_error)
 
 def get_oblique_date(discharge_date,each_row_list):
     if len(discharge_date.split('/')) == 3:  # 22-12-25
@@ -523,8 +583,10 @@ def get_oblique_date(discharge_date,each_row_list):
         discharge_dt = datetime.datetime(year=int(y_str), month=int(m), day=int(d))
         return discharge_dt
     else:
-        raise ValueError(f'The DISCHARGE DATE -> "{discharge_date}" provided is invalid for ID: {each_row_list[0]}. Use proper date format.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today')
-
+        date_format_error_oblique = f'The DISCHARGE DATE -> "{discharge_date}" provided is invalid for ID: {each_row_list[0]}. Use proper date format.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today'
+        error_tk_box(error_title="Discharge Date Format Error O",
+                     error_message=date_format_error_oblique)
+        raise ValueError(date_format_error_oblique)
 
 
 def get_dot_date(discharge_date, each_row_list):
@@ -534,8 +596,10 @@ def get_dot_date(discharge_date, each_row_list):
         discharge_dt = datetime.datetime(year=int(y_str), month=int(m), day=int(d))
         return discharge_dt
     else:
-        raise ValueError(f'The DISCHARGE DATE -> "{discharge_date}" provided is invalid for ID: {each_row_list[0]}. Use proper date format.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today')
-
+        invalid_date_error_dot = f'The DISCHARGE DATE -> "{discharge_date}" provided is invalid for ID: {each_row_list[0]}. Use proper date format.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today'
+        error_tk_box(error_title='Discharge Date Format Error Do',
+                     error_message=invalid_date_error_dot)
+        raise ValueError(invalid_date_error_dot)
 
 def get_dash_date(discharge_date,each_row_list):
     if len(discharge_date.split('-')) == 3:  # 22-12-25
@@ -544,8 +608,10 @@ def get_dash_date(discharge_date,each_row_list):
         discharge_dt = datetime.datetime(year=int(y_str), month=int(m), day=int(d))
         return discharge_dt
     else:
-        raise ValueError(f'The DISCHARGE DATE -> "{discharge_date}" provided is invalid for ID: {each_row_list[0]}. Use proper date format.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today')
-
+        invalid_date_format_dash_error = f'The DISCHARGE DATE -> "{discharge_date}" provided is invalid for ID: {each_row_list[0]}. Use proper date format.\nIt can be either dd-mm-yy or dd.mm.yy or dd/mm/yy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yyyy or "t" for today'
+        error_tk_box(error_title="Discharge Date Format Error Ds",
+                     error_message=invalid_date_format_dash_error)
+        raise ValueError(invalid_date_format_dash_error)
 
 def process_date_time(discharge_dt):
     # discharge_dt = discharge_dt.replace(microsecond=0)
@@ -607,7 +673,11 @@ def process_diagnosis_with_icd_code(page, dischargeable_ipds):  #  dischargeable
 
             "check the snomed data is empty i.e. wrong item searched"
             if not each_diagnosis_snomed_data:
-                raise ValueError(f'The diagnosis provided -> "{each_diagnosis}" is wrong in IPD:{every_dischargeable_ipd[0]}. The diagnosis should be matching the diagnosis present in website "EXACTLY". Please check spellings and correct in DATA_CODE SHEET')
+
+                snomed_diagnosis_unmatch_error = f'The diagnosis provided -> "{each_diagnosis}" is wrong in IPD:{every_dischargeable_ipd[0]}. The diagnosis should be matching the diagnosis present in website "EXACTLY". Please check spellings and correct in DATA_CODE SHEET'
+                error_tk_box(error_title='Diagnosis Mismatch Error',
+                             error_message=snomed_diagnosis_unmatch_error)
+                raise ValueError(snomed_diagnosis_unmatch_error)
 
             # print('THE SNO-MED SEARCH', each_diagnosis_snomed_data)  #
             # [
@@ -673,14 +743,19 @@ def get_icd_map_using_page(page, concept_id: str):
 def verify_user(user_id):
     already_present_user_list = ["kiran_701303", "Jyoti_701333", "Sumitra_701378", "Surendra_701384", "Sangeeta_701358", "Yamini_701348", "Veena_701377", "Neha_701336"]
     if user_id not in already_present_user_list:
-        raise ValueError(f'User_Name -> {user_id} is not correct or not in list')
+        invalid_user_error = f'User_Name -> {user_id} is not correct or not in list. Check Username in "USER" Sheet in Excel'
+        error_tk_box(error_title="Invalid User ID",
+                     error_message=invalid_user_error)
+        raise ValueError(invalid_user_error)
     else:
         print('User is :', user_id)
-
-
+        ColourPrint.print_yellow(message_box('Please wait ...'))
 
 
 def main():
+    # check for chromeDev Opened and the desired page present return the indexed of page
+    pages_indicis = get_desired_page_indexes_in_cdp_async('NextGen eHospital')  # print = [0,2,..]
+
     with sync_playwright() as p:
         # Connect to already running Chrome (start with --remote-debugging-port=9222)
         browser = p.chromium.connect_over_cdp("http://localhost:9222")
@@ -688,21 +763,26 @@ def main():
         # Use existing context and open a fresh new tab
         context = browser.contexts[0]
 
+        # Set default timeout for all actions in this context
+        # context.set_default_timeout(120_000)
+
         # Manually paste your fresh Bearer token here
         token = "Bearer cinnJRZ1gxUTH9YvFc2kh7HXskB6vAiO"
-        print("🔑 Using Bearer Token:", token[:50] + "...")
+        # print("🔑 Using Bearer Token:", token[:50] + "...")
 
         # Keep tab 1 (manual login tab) untouched
         page1 = context.pages[0]
-        print("✅ Page 1: manual login session preserved.")
+        # print("Page 1: manual login session preserved.")
 
         # 🔁 Check if second tab (automation tab) already exists
         if len(context.pages) > 1:
-            page2 = context.pages[1]
-            print("🔁 Reusing existing automation tab (Page 2).")
+            # page2 = context.pages[1]
+            desired_url_page = pages_indicis[0]
+            page2 = context.pages[desired_url_page]  # using the page indices
+            # print("🔁 Reusing existing automation tab (Page 2).")
         else:
             page2 = context.new_page()
-            print("🆕 Opened fresh automation tab (Page 2).")
+            # print("🆕 Opened fresh automation tab (Page 2).")
             page2.goto("https://nextgen.ehospital.gov.in/login")
 
 
@@ -730,14 +810,15 @@ def main():
 
 
         for idx, single_dischargeable_ipd in enumerate(formatted_final_dischargeable_ipds_except_datetime, start=1):
-            print(f'Serial No.{idx}. Single Discharge IPD: ', single_dischargeable_ipd)
+            ColourPrint.print_pink(message_box(f'Serial No.{idx}. IPD: {single_dischargeable_ipd[0]}'))
+            print(f'Single Discharge IPD: ', single_dischargeable_ipd)
             # selecting the ipd number patient fron whole active data
 
             automate_discharge_with_manual_token(token=token, single_dischargeable_ipd=single_dischargeable_ipd, whole_active_patients_data=whole_active_patients_data, user_id=user_id_of_excel, context=context)
             nextgen_ui(context=context, headers=headers, ipd_number_integer=single_dischargeable_ipd[0])
-            ColourPrint.print_green('\\'*50)
-            print(f'Completed All for IPD {single_dischargeable_ipd[0]}')
-            ColourPrint.print_green('/'*50)
+
+            ColourPrint.print_green(message_box(f'Completed All for IPD {single_dischargeable_ipd[0]}'))
+
 
 
 

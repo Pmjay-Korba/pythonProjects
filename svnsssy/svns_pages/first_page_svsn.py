@@ -2,6 +2,8 @@ import datetime
 import sqlite3
 import openpyxl
 from playwright.sync_api import sync_playwright, Page, TimeoutError
+
+from dkbssy.utils.colour_prints import ColourPrint
 from svnsssy.svns_pages import xpaths_svsn as xpaths
 
 

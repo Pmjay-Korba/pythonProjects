@@ -90,7 +90,9 @@ class ExcelMethods:
             ColourPrint.print_yellow('DataBase Saved')
         except Exception as e:
             ColourPrint.print_bg_red("ERROR OCCURRED, ROLLBACK")
+            print("Exception:", e)
             conn.rollback()
+            raise FileExistsError('The Database File is corrupt. Download the latest "incentiveDatabase.db" from Google Drive backup')
 
     def sqlite_process(self) -> list[tuple]:
         conn = sqlite3.connect(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\incentiveDatabase.db')

@@ -1,15 +1,20 @@
 import time
-
-from EHOSP.ehospital_proper.colour_print_ehosp import ColourPrint
+from EHOSP.tk_ehosp.alert_boxes import error_tk_box
+from dkbssy.utils.colour_prints import ColourPrint, message_box
 from playwright.sync_api import sync_playwright, Page, expect, TimeoutError
 
 
 def nextgen_ui(context, headers, ipd_number_integer):
     page:Page = context.new_page()
-    print("🆕 Opened fresh automation tab (Page).")
+    # print("🆕 Opened fresh automation tab (Page).")
 
     page.goto("https://nextgen.ehospital.gov.in/login")
-    page.wait_for_selector("//span[normalize-space()='IPD']").click()
+    try:
+        page.wait_for_selector("//span[normalize-space()='IPD']").click()
+    except TimeoutError:
+        error_tk_box(error_title="NextGen Site Login Error",
+                     error_message='User is not logged in in Website. Login First in NextGen Website')
+        raise
     #
     time.sleep(5)
 

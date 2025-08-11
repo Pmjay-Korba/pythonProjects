@@ -38,7 +38,7 @@ async def type_list_generate(page:Page, case_type_button, patient_status_field_x
     await page.select_option(select_ors.rowsPerPageSelect, '50')
 
     # getting number of pending
-    total_under_treatment_element = await page.locator(patient_status_field_xpath).text_content()  # Under Treatment(173), patient_status_field_xpath="underTreatmentWith_("
+    total_under_treatment_element = await page.locator(patient_status_field_xpath).text_content()    # Under Treatment(173), patient_status_field_xpath="underTreatmentWith_("
 
     total_treat_pending = int(total_under_treatment_element.split("(")[1].split(")")[0])
 

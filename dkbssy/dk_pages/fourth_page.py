@@ -42,6 +42,7 @@ class FourthPage(Page):
         browser = await play.chromium.connect_over_cdp('http://localhost:9222')
         context = browser.contexts[0]
         page = context.pages[0]
+        page.set_default_timeout(300000)
         await page.locator("//input[@id='ctl00_ContentPlaceHolder1_TextBox1']").fill(code)
         await page.locator("//input[@id='ctl00_ContentPlaceHolder1_search']").click()
         new_path = f'//*[@id="ctl00_ContentPlaceHolder1_TextBox1" and @value="{code}"]'

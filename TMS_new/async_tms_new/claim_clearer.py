@@ -25,6 +25,7 @@ async def main(registration_no, cdp_port):
 
         await select_ALL_and_search(page=page, registration_no=registration_no)
 
+        # only for RF qquery now
         await query_process(page=page)
 
 

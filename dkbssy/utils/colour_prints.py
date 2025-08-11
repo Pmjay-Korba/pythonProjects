@@ -91,7 +91,14 @@ class ColourPrint:
         print(f"{cls.__turquoise}{coloured_text}{cls.__reset}")
 
 
-# if __name__=='__main__':
+def message_box(my_message: str) -> str:
+    box_width = len(my_message) + 6  # Adjust box width based on message
+    horizontal_border = '+' + '=' * (box_width - 2) + '+'
+    middle_line = f"| {my_message.center(box_width - 4)} |"
+    return f"\n{horizontal_border}\n{middle_line}\n{horizontal_border}\n"
+
+
+if __name__=='__main__':
     # ColourPrint.print_green('text, green,',2)
     # ColourPrint.print_blue('blue')
     # ColourPrint.print_yellow('yellow')
@@ -99,4 +106,5 @@ class ColourPrint:
     # ColourPrint.print_pink('pink', 'the')
     # ColourPrint.print_pink(2)
     # ColourPrint.print_turquoise('torq')
+    ColourPrint.print_yellow(message_box('kkkkkkkk'))
 

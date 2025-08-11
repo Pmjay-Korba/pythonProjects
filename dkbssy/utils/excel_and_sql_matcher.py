@@ -23,6 +23,7 @@ class CheckerUpdate:
         context = browser.contexts[0]
         # page = await context.new_page()
 
+
         response = await context.request.get('https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleInitiatedcasesdme.aspx')
         # print(await response.text())
 

@@ -93,8 +93,8 @@ def department_wise_extract_for_discharge():
     pending_discharge_wb.save(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx')
     pending_discharge_wb.close()
 
-def department_wise_extract_for_queries_2025():
-    pending_discharge_wb = openpyxl.load_workbook(r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx")
+def department_wise_extract_for_queries_2025(excel_path=r'G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx'):
+    pending_discharge_wb = openpyxl.load_workbook(excel_path)
     # pending_discharge_wb = openpyxl.load_workbook(r'H:\My Drive\GdrivePC\Hospital\RSBY\New\pedia_extract2.xlsx')
     pend_dis_sheet = pending_discharge_wb['QUERY2']
 
@@ -104,7 +104,7 @@ def department_wise_extract_for_queries_2025():
 
     # wb_2025 = openpyxl.load_workbook(r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc_new.xlsx")
     # modifying the name cc_new to cc
-    wb_2025 = openpyxl.load_workbook(r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx")
+    wb_2025 = openpyxl.load_workbook(excel_path)
     sheet_2025 = wb_2025['2025']
 
 
@@ -140,19 +140,19 @@ def department_wise_extract_for_queries_2025():
             zz = str(' + '.join(z))
             print(card_pend_scan, zz)
             pend_dis_sheet.cell(row=y, column=12).value = zz
-        pending_discharge_wb.save(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx')
+        pending_discharge_wb.save(excel_path)
         pending_discharge_wb.close()
         wb_2025.close()
 
 
-def department_wise_extract_for_discharge_2025():
-    pending_discharge_wb = openpyxl.load_workbook(r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx")
+def department_wise_extract_for_discharge_2025(excel_path=r'G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx'):
+    pending_discharge_wb = openpyxl.load_workbook(excel_path)
     pend_dis_sheet = pending_discharge_wb['Pend Dischg2']
     # ayusman_sheet = pending_discharge_wb['2024']
 
     # wb_2025 = openpyxl.load_workbook(r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc_new.xlsx")
     # modifying the name cc_new to cc
-    wb_2025 = openpyxl.load_workbook(r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx")
+    wb_2025 = openpyxl.load_workbook(excel_path)
     sheet_2025 = wb_2025['2025']
 
     '''getting the list of main file card list'''
@@ -192,18 +192,6 @@ def department_wise_extract_for_discharge_2025():
                     pend_dis_sheet.cell(row=pend_card_row, column=12, value=joined_values)  # Column H is the 8th column
 
     # Save the changes to the workbook
-    pending_discharge_wb.save(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\down\cc.xlsx')
+    pending_discharge_wb.save(excel_path)
     pending_discharge_wb.close()
-
-
-# def department_wise_extract_for_discharge_for_all(*workbookPath_sheetName_pairs: tuple[str,str])->dict:
-#     dict_all = dict()
-#     name_count = 0
-#     for each_workbook_name, each_sheet_name in workbookPath_sheetName_pairs:
-#         each_workbook = openpyxl.load_workbook(each_workbook_name)
-#         each_sheet = each_workbook[each_sheet_name]
-#         sheet_cols = each_sheet.iter_rows(values_only=True)
-#         dict_all[str(name_count)] = list(sheet_cols)
-#         name_count += 1
-#     return dict_all
 

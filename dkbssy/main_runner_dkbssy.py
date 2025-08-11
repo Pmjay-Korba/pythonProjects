@@ -1,6 +1,8 @@
 import time
 import openpyxl
 from selenium.common import TimeoutException
+
+from EHOSP.tk_ehosp.alert_boxes import error_tk_box
 from dis_tms.main_webdriver.create_driver_modu import create_driver
 from dkbssy.dk_pages.dk_login_page import FirstPage, check_chrome_and_tab
 from dkbssy.dk_pages.fifth_page import FifthPage
@@ -31,7 +33,14 @@ class DkbssyIncentiveEntry:
     to_date = '2023-12-31'
     page_title_given = 'Shaheed Veer Narayan Singh Ayushman Swasthya Yojna'
 
-    def main(self, all_casear):
+    def main(self, all_casear, attach_file_path):
+        attach_file_path = attach_file_path.strip('\n').strip().strip('"')
+        ColourPrint.print_pink('The file path is: ', attach_file_path)
+        user_checked_file = input('IF ABOVE FILE LOCATION IS CORRECT, Press 1 and than press Enter: ')
+        if user_checked_file != '1':
+            error_tk_box(error_title="Error",
+                         error_message='THE FILE PATH IS NOT CORRECTLY CONFIRMED. Press 1 and than press Enter to confirm')
+            raise ValueError('THE FILE PATH IS NOT CORRECTLY CONFIRMED')
 
         # function ran
         name_for_date_check_gmc.checker_with_dict_output(all_casear.split('\n'))
@@ -41,6 +50,7 @@ class DkbssyIncentiveEntry:
         if not is_chrome_dev_open:
             ColourPrint.print_pink('FIRST LOGIN IN TO THE "APPROVER SITE" BY USING THE EDGE-DEV')
 
+        """
         def file_attach_check():
             is_correct = False
             while not is_correct:
@@ -55,6 +65,8 @@ class DkbssyIncentiveEntry:
             return None
 
         attach_file_path = file_attach_check()
+        """
+
         # input("Press Enter to continue")
         global final_names
 

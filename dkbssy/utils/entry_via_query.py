@@ -129,6 +129,7 @@ async def _resubmit(case_number):
     browser = await play.chromium.connect_over_cdp('http://localhost:9222')
     context = browser.contexts[0]
     page = await context.new_page()
+    page.set_default_timeout(300000)
     print('Original Site - Here in reinitiate')
     await page.goto(f'https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleQuerryViewDME_Edit.aspx?ci={case_number}')
 

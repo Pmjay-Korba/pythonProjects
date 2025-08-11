@@ -121,6 +121,7 @@ class IncentiveScraper:
         play = await async_playwright().start()
         browser = await play.chromium.connect_over_cdp('http://localhost:9222')
         context = browser.contexts[0]
+
         pages = [await context.new_page() for _ in range(BROWSER_TAB_COUNT)]
 
         it = iter(case_list)

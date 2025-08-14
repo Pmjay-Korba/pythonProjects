@@ -5,158 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="29706ac3-b5eb-4019-91ba-d12a8e4559af" name="Changes" comment="start">
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc (1).xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/pythonProject (1).iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/pythonProject.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace (1).xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/000AMOUNTUPDATE.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/01PMJAY.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/.idea/EHOSP.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/EdgeDev.lnk" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/chromeDev.lnk" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/async_request.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/async_ui_entry.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/misc.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/nextgen_request.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/ui_method.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/update_dis_type.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/ward_discharge_entry.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehospital_proper/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehospital_proper/colour_print_ehosp.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehospital_proper/ehosp_selectors.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehospital_proper/inject_custom_form_html.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehospital_proper/nextgen.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/ehospital_proper/start_page_ehosp.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/nextgen_discharge.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/.idea/tk_ehosp.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/database_create.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/ehospital_tk.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/ehospital_tk_2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/rough.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EHOSP/tk_ehosp/ward_database_file.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/a_new_async.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/async_one.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/b_new_async.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/download/AYUSHMAN REGISTRATION 2025.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/download/file_json.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/download/result_data_json.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/list_generator_only.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/select_ors.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/details_list_dis_query_NEW.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/details_list_dis_query_NEW_2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/details_list_dis_query_NEW_3.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/details_list_dis_query_NEW_4.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/pending_status_getter.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/play_request/req_1.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/sync_tms/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/sync_tms/excel_and_sql_methods.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/sync_tms/selector_xp.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/sync_tms/sync_methods_tms.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TMS_new/temp.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/fingerprint_done_or_not_checker.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/main_webdriver/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/main_webdriver/create_driver_modu.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/main_webdriver/runner.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/page_obj/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/page_obj/claim_query_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/page_obj/first_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/page_obj/fourth_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/page_obj/second_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/page_obj/third_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/tms_runner.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/utils/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dis_tms/utils/utilities.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/dk_pages/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/dk_pages/dk_login_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/dk_pages/fifth_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/dk_pages/fourth_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/dk_pages/second_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/dk_pages/sixth_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/dk_pages/third_page.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/main_runner_dkbssy.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/name_list_gen_runner.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/name_list_genrator/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/name_list_genrator/name_list_gen.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/name_list_genrator/sql_for_temp_db.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/name_list_genrator/text.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/colour_prints.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/entry_via_query.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/excel_and_sql_matcher.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/excel_utils.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/file_renamer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/incen_percent.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/name_for_date_check_gmc.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dkbssy/utils/sqlite_updation_long.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/000PMJAY.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/A123.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/A123_mod.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/A2345.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/_2_amount_getter.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/_2_amount_getter_gmcHIGHMODS.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/_2_gmc_ayusman.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/_2_special_ayusmans.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/_incen_person_details_getter.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/_query_convert_to_hospital_query.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/_query_delete.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/_query_hospital - Copy.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/ayusman_authorize.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/backups.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/correction.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/dk_manual_paid_update.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/initiate.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/is_new_born_withDr_name.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/name_for_date_check.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/name_list_generator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_3_complete_discharge.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_department_wise_2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_dis_depart_wise_excel.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_discharge_list_generate.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_gynic_ward_discharge.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_is_new_born_baby_pedia.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_query_claim_list_generate.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_query_preauth_list_generate.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_sncu_2_special.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_sncu_3_special.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/old_dkbssy_folder/tms_sncu_special.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rough.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rough2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/001AMOUNTUPDATE.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/new_svnsssy/async_dkbssy.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/svns_pages/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/svns_pages/first_page_svsn.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/svns_pages/get_data_request_for_db_2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/svns_pages/incentive_results.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/svns_pages/request dk.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/svns_pages/rough2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/svns_pages/xpaths_svsn.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/svsn_app.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/svnsssy/temp_updated_db.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/discharge_to_be_done/detail_list_getter_all.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/discharge_to_be_done/detail_list_getter_all_2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/discharge_to_be_done/discharge_details.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/page_objs_tms/tms_xpaths.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/runners/async_discharge_doing_starting_file.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/runners/discharge_details_getter.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/runners/discharge_details_getter2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/runners/discharge_details_getter3.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/runners/get_list_dis_query.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tms_playwright/runners/sync_play_discharge.py" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/TMS_Process/downloads/sodium-cat-452017-h0-9d08be057d0e.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TMS_Process/process/enhance_1.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TMS_new/async_tms_new/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace (1).xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace (1).xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/nextgen_request.py" beforeDir="false" afterPath="$PROJECT_DIR$/EHOSP/ehosp_2/nextgen_request.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EHOSP/ehosp_2/ward_discharge_entry.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/EHOSP/ehosp_2/ward_discharge_entry.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/claim_clearer.py" beforeDir="false" afterPath="$PROJECT_DIR$/TMS_Process/process/claim_clearer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/download/AYUSHMAN REGISTRATION 2025.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/TMS_new/async_tms_new/download/AYUSHMAN REGISTRATION 2025.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TMS_new/async_tms_new/enhancement.py" beforeDir="false" afterPath="$PROJECT_DIR$/TMS_Process/enhancement.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TMS_new/play_request/req_2_for_git.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TMS_new/play_request/testing.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TMS_new/play_request/testing222222222222.py" beforeDir="false" afterPath="$PROJECT_DIR$/TMS_Process/process/tks.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -251,7 +111,7 @@
       <recent name="G:\Other computers\My Computer\pythonProject\EHOSP\async_ehosp_2" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.01PMJAY">
+  <component name="RunManager" selected="Python.nextgen_discharge">
     <configuration name="01PMJAY" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="pythonProject" />
       <option name="ENV_FILES" value="" />
@@ -476,9 +336,9 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.nextgen_discharge" />
         <item itemvalue="Python.01PMJAY" />
         <item itemvalue="Python.details_list_dis_query_NEW_3" />
-        <item itemvalue="Python.nextgen_discharge" />
         <item itemvalue="Python.colour_prints" />
         <item itemvalue="Python.rough2" />
       </list>

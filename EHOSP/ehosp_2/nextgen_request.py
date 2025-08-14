@@ -1,12 +1,14 @@
 import datetime
 import json
 import urllib.parse
+from logging import exception
+
 import openpyxl
 from playwright.sync_api import sync_playwright
 from EHOSP.ehosp_2.ui_method import nextgen_ui
 from dkbssy.utils.colour_prints import ColourPrint, message_box
 from EHOSP.tk_ehosp.alert_boxes import error_tk_box
-from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async
+from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_SYNC
 
 WARDS = [
     {'ward_id': 4052, 'ward_name': 'New Ward', 'ward_type': 'General ward', 'active_status': 1, 'sex_id': 'B', 'location_id': None},
@@ -75,9 +77,17 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
     }
     'getting the names and details of all patient in a particular ward'
 
-    patient_list_resp = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/common/patientByWard/7013/{patient_current_ward_id}',
-                                    headers=headers)
-    # print(patient_list_resp)
+    headers2 = {  # headers added for the changes
+        "Authorization": token,
+        "usertype": "5",  # Add this!
+        "wardid": f"{patient_current_ward_id}",  # new added
+        "healthfacilityid": "7013"
+        # "userdepartmentarray": ""  # Keep it empty if unsure — still better than missing
+    }
+
+    # patient_list_resp = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/common/patientByWard/7013/{patient_current_ward_id}', headers=headers)  # previously working now modified and id goes in headers
+    patient_list_resp = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/common/patientByWard', headers=headers2)
+    # print('---------------', patient_list_resp)
 
     if patient_list_resp.ok:
         patient_details = patient_list_resp.json()['result']
@@ -151,17 +161,24 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
                         )
 
                         if resp.ok:
-                            ColourPrint.print_green("Discharge initiated successfully")
+                            ColourPrint.print_green("Discharge INITIATED successfully")
                             print(resp.json())
                         else:
                             print("❌ Failed to initiate discharge")
                             print(resp.status, resp.json())
                 'Above till here the payload is sent to update the type of discharge'
 
-
+                headers3 = {  # headers added for the changes
+                    "Authorization": token,
+                    "usertype": "5",  # Add this!
+                    "healthfacilityid": "7013",
+                    "ipdid":f"{ipd_id_web}"  # new added
+                    # "userdepartmentarray": ""  # Keep it empty if unsure — still better than missing
+                }
                 'getting all discharges pending of a ward --- This is from PREPARE SUMMARY PAGE after INITIATION PAGE discharge type update'
-                discharge_list_of_ward_web = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/doc/getDisSummary?ipd_id={ipd_id_web}&health_facility_id=7013',
-                                             headers=headers)
+                # discharge_list_of_ward_web = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/doc/getDisSummary?ipd_id={ipd_id_web}&health_facility_id=7013', headers=headers)
+                discharge_list_of_ward_web = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/doc/getDisSummary', headers=headers3)  # modified for the new pattern change in website
+                print('========', discharge_list_of_ward_web)
 
                 # 'https://nextgen.ehospital.gov.in/api/ipd/doc/getDisSummary?ipd_id=6368234&health_facility_id=7013'
                 '''This below each patient are the list of patient whose discharge summary need to be prepare after discharge type initiation in initiation page'''
@@ -226,7 +243,32 @@ def summary_entry(each_patient_summary_json:dict, single_dischargeable_ipd_entry
             "med": []
         }
 
-        print(payload)
+        '''NEW FORMAT FOR PAYLOAD'''
+        payload3 = {
+            "summary": {
+                "asst_surgeon": None,
+                "brief_summary": f"{processed_brief_summary}",
+                "diagnosis": f"{processed_diagnosis}",
+                "dis_prepared_by": user_id,
+                "dis_type_code": each_patient_summary_json[ "dis_type_code"],
+                "discharge_date": f"{processed_discharge_date_is}",
+                "follow_up": f"{processed_follow_up}",
+                "health_facility_id": each_patient_summary_json["health_facility_id"],
+                "ipd_id": each_patient_summary_json["ipd_id"],
+                "operation_date": None,
+                "operative_finding": None,
+                "pat_condition_on_adm": f"{processed_admission_condition}",
+                "pat_condition_on_dis": f"{processed_discharge_condition}",
+                "procedure_name": None,
+                "recordid": each_patient_summary_json["recordid"],
+                "senior_resident": None,
+                "surgeon": None,
+                "treatment_details": f"{processed_treatment}"
+            },
+            "med": []
+        }
+
+        print(payload3)
 
         headers = {
             "Authorization": token,
@@ -236,7 +278,7 @@ def summary_entry(each_patient_summary_json:dict, single_dischargeable_ipd_entry
 
         add_summary_post = request.post('https://nextgen.ehospital.gov.in/api/ipd/doc/addDischargeSummary',
                                        headers=headers,
-                                        data = json.dumps(payload)
+                                        data = json.dumps(payload3)
                                         )
         if add_summary_post.ok:
             ColourPrint.print_green('=.'*50)
@@ -303,11 +345,43 @@ def get_all_active_patients_list(context, token: str):
         '''searching the ipd'''
         all_patient_list = response.json()
         _active_patients_data = all_patient_list["result"]
-        # print(_active_patients_data)
+        # print('active patient data', _active_patients_data)
         return _active_patients_data
     else:
         print(f"❌ Error {response.status}: {response.status_text}")
         return None
+
+def get_fresh_token_and_userid(context):
+    page = context.new_page()
+    try:
+
+        token_data = {}
+
+        def capture_request(request):
+            if "api/user_mgmt/v1/user_project_menus" in request.url:
+                token_data["headers"] = request.headers
+                # ColourPrint.print_yellow(token_data)
+                # for k, v in request.headers.items():
+                    # ColourPrint.print_blue(f"{k}: {v}")
+
+        page.on("request", capture_request)
+
+        # Go to the page that triggers the API call
+        page.goto("https://nextgen.ehospital.gov.in/adminHome")
+
+        page.wait_for_selector("//span[normalize-space()='IPD']").click()
+
+        # Wait until that specific request is made
+        context.wait_for_event(
+            "request",
+            lambda req: "api/user_mgmt/v1/user_project_menus" in req.url
+        )
+        return token_data['headers']['authorization'],token_data['headers']['userid']
+    except Exception as e:
+        print(e)
+    finally:
+        page.close()
+
 
 def select_matching_ipd_from_active_patient_list_return_ward_id(ipd_number_integer:int, whole_active_patient_data ):
     for individual_patient_data in whole_active_patient_data:
@@ -350,12 +424,13 @@ def fetch_excel(workbook_path):
     main_sheet_rows = main_sheet.iter_rows(min_row=2, max_col=5, values_only=True)
     # print(main_sheet_rows)  # <generator object Worksheet._cells_by_row at 0x000001ED0B697640>
 
-    """getting data from USER sheet"""
-    user_sheet = wb['USER']
-    user_id_of_excel = user_sheet.cell(row=3, column=2).value.strip()
-    # ward_of_excel = user_sheet.cell(row=21, column=28).value
-    # ward_id_of_excel = user_sheet.cell(row=22, column=28).value
-    print(user_id_of_excel)
+    "not required now"
+    # """getting data from USER sheet"""
+    # user_sheet = wb['USER']
+    # user_id_of_excel = user_sheet.cell(row=3, column=2).value.strip()
+    # # ward_of_excel = user_sheet.cell(row=21, column=28).value
+    # # ward_id_of_excel = user_sheet.cell(row=22, column=28).value
+    # print(user_id_of_excel)
 
     """getting data from DIAG_CODE sheet"""
     diagnosis_sheet = wb['DIAG_CODE']
@@ -440,7 +515,6 @@ def fetch_excel(workbook_path):
 
             """Place here the ICD code update function"""
 
-
             new_each_row_list.append(multi_diag_list)
             """Making changes to receive the treatment list"""
             treatment_verified_code = validate_treatment_codes_new(each_row_list)
@@ -449,19 +523,8 @@ def fetch_excel(workbook_path):
             except KeyError:
                 raise KeyError(f'The TREATMENT code -> "{treatment_verified_code}" in IPD: {each_row_list[0]} is not present in TREATMENT EXCEL SHEET. Please Check')
 
-
             dischargeable_ipd.append(new_each_row_list)
-
-    # ColourPrint.print_yellow('+++++Dischargable IPD+++++'*3)
-    # for i in dischargeable_ipd:
-    #     print(i)
-    # ColourPrint.print_yellow('+++++Dischargable IPD+++++'*3)
-    # ColourPrint.print_green('-:' * 50)
-
-
-
-
-    return user_id_of_excel, dischargeable_ipd
+    return dischargeable_ipd
 
 
 
@@ -754,7 +817,7 @@ def verify_user(user_id):
 
 def main():
     # check for chromeDev Opened and the desired page present return the indexed of page
-    pages_indicis = get_desired_page_indexes_in_cdp_async('NextGen eHospital')  # print = [0,2,..]
+    pages_indicis = get_desired_page_indexes_in_cdp_async_for_SYNC('NextGen eHospital')  # print = [0,2,..]
 
     with sync_playwright() as p:
         # Connect to already running Chrome (start with --remote-debugging-port=9222)
@@ -767,8 +830,9 @@ def main():
         # context.set_default_timeout(120_000)
 
         # Manually paste your fresh Bearer token here
-        token = "Bearer cinnJRZ1gxUTH9YvFc2kh7HXskB6vAiO"
-        # print("🔑 Using Bearer Token:", token[:50] + "...")
+        print(get_fresh_token_and_userid(context=context))
+        token, user_id_from_get_request = get_fresh_token_and_userid(context=context)
+        ColourPrint.print_pink('User Id of Web:', user_id_from_get_request)
 
         # Keep tab 1 (manual login tab) untouched
         page1 = context.pages[0]
@@ -796,12 +860,14 @@ def main():
         }
 
 
-        user_id_of_excel, dischargeable_ipd = fetch_excel(r"..\EHOSP\ehosp_2\ward_discharge_entry.xlsx")
+        dischargeable_ipd = fetch_excel(r"..\EHOSP\ehosp_2\ward_discharge_entry.xlsx")
         formatted_final_dischargeable_ipds_except_datetime = process_diagnosis_with_icd_code(page=page2,dischargeable_ipds=dischargeable_ipd)
         # print(formatted_final_dischargeable_ipds_except_datetime)
         # print('len', len(formatted_final_dischargeable_ipds_except_datetime))
 
         "VERIFY USER"
+        user_id_of_excel = user_id_from_get_request
+        # print('=========', user_id_of_excel)
         verify_user(user_id_of_excel)
 
         'getting the ward name of the ipd number'

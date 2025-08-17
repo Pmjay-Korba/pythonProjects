@@ -64,7 +64,8 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
     # Setup context request object
     request = context.request
 
-    patient_current_ward_id = select_matching_ipd_from_active_patient_list_return_ward_id(ipd_number_integer=ipd_number_integer, whole_active_patient_data=whole_active_patients_data)
+    # patient_current_ward_id = select_matching_ipd_from_active_patient_list_return_ward_id(ipd_number_integer=ipd_number_integer, whole_active_patient_data=whole_active_patients_data)  Not required now
+    patient_current_ward_id = get_single_patient_ward_id(context=context, token=token, ipd_no=ipd_number_integer)
     # print('current ward id', patient_current_ward_id)
 
 
@@ -339,7 +340,7 @@ def get_all_active_patients_list(context, token: str):
     }
 
     response = context.request.get(url, headers=headers, timeout= 120_000)
-    # print(response)
+    # print('>>>>>>>> ALL PATIENT DATA', response)
 
     if response.ok:
         '''searching the ipd'''
@@ -350,6 +351,40 @@ def get_all_active_patients_list(context, token: str):
     else:
         print(f"❌ Error {response.status}: {response.status_text}")
         return None
+
+def get_single_patient_ward_id(context, token: str, ipd_no):
+    url = f"https://nextgen.ehospital.gov.in/api/ipd/doc/printSummStatus/7013/{ipd_no}"
+    headers = {
+        "Authorization": token,
+        "Content-Type": "application/json",
+        "usertype": "5",  # Must be included based on previous discovery
+        "userdepartmentarray": ""
+    }
+
+    response = context.request.get(url, headers=headers, timeout=60_000)
+    if response.ok:
+        patient_data = response.json()
+        print("=======>", patient_data)
+
+        result = patient_data.get("result", [])
+        if result:  # check if list is not empty
+
+            if result[0]['dis_summary_status']==2:
+                error_tk_box(error_title='Error',
+                             error_message=f"The IPD:{ipd_no}' might be already discharged. Please Check")
+                raise ValueError(f"The IPD:{ipd_no}' might be already discharged. Please Check")
+
+            ward_id = result[0].get("ward_id")
+            return ward_id
+        else:
+            error_tk_box(error_title='Error',
+                         error_message=f'The ward name and ID could not be fetched from website for IPD:{ipd_no}. Check IPD number is correct.')
+            raise ValueError(f'The ward name and ID could not be fetched from website for IPD:{ipd_no}')
+
+    else:
+        print(f"Request failed: {response.status}")
+        return None
+
 
 def get_fresh_token_and_userid(context):
     page = context.new_page()
@@ -870,9 +905,12 @@ def main():
         # print('=========', user_id_of_excel)
         verify_user(user_id_of_excel)
 
-        'getting the ward name of the ipd number'
-        whole_active_patients_data = get_all_active_patients_list(context, token)
+        # 'getting the ward name of the ipd number'
+        # whole_active_patients_data = get_all_active_patients_list(context, token)
         # print(all_active_patients_data)
+
+        # single_patient_data = get_single_patient_ward_id(context=context, token=token, ipd_no='250017315')
+        # print(single_patient_data)
 
 
         for idx, single_dischargeable_ipd in enumerate(formatted_final_dischargeable_ipds_except_datetime, start=1):
@@ -880,8 +918,10 @@ def main():
             print(f'Single Discharge IPD: ', single_dischargeable_ipd)
             # selecting the ipd number patient fron whole active data
 
-            automate_discharge_with_manual_token(token=token, single_dischargeable_ipd=single_dischargeable_ipd, whole_active_patients_data=whole_active_patients_data, user_id=user_id_of_excel, context=context)
-            nextgen_ui(context=context, headers=headers, ipd_number_integer=single_dischargeable_ipd[0])
+            automate_discharge_with_manual_token(token=token, single_dischargeable_ipd=single_dischargeable_ipd, whole_active_patients_data=None, user_id=user_id_of_excel, context=context)
+
+            # this has been deprecated
+            # nextgen_ui(context=context, headers=headers, ipd_number_integer=single_dischargeable_ipd[0])
 
             ColourPrint.print_green(message_box(f'Completed All for IPD {single_dischargeable_ipd[0]}'))
 

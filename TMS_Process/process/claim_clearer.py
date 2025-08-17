@@ -1,6 +1,8 @@
 import asyncio
 
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
+from urllib3.util.wait import wait_for_socket
+
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from TMS_new.async_tms_new import select_ors
 from dkbssy.utils.colour_prints import ColourPrint
@@ -36,6 +38,8 @@ async def is_home_page(page:Page):
         await expect(page.locator(select_ors.yourHospitalDashboard)).to_be_visible()
         try:
             await (await page.wait_for_selector(select_ors.searchBox, timeout=2000)).fill('test')
+            total_amount = (await (await page.wait_for_selector("//h1[@class=' MMPSPNfakB2FCrcdJFVH V0N_rBD9HSG_V8DXM7fh']//span[@class='BUnqLA8pVHiNDXGN4301']")).text_content())
+            print(total_amount)
             # await asyncio.sleep(2)
 
         except TimeoutError:
@@ -55,7 +59,8 @@ async def select_ALL_and_search(page:Page, registration_no):
 
     while True:
         try:
-            await page.wait_for_selector("//p[contains(text(),'Registration ID:')]", timeout=2000)  # all ids labels
+            # await page.wait_for_selector("//p[contains(text(),'Registration ID:')]", timeout=2000)  # all ids labels
+            await page.wait_for_selector(f"//strong[contains(text(),'{registration_no}')]", timeout=2000)  # all ids labels
             # print('cccccccccccccccccccccc')
             break
         except TimeoutError:
@@ -70,7 +75,7 @@ async def query_process(page:Page):
     await page.locator("//span[normalize-space()='Query Response']").click()  # clicking the query bar
     response_text = 'RF query not applicable from. Hospital end. Kindly provide necessary details if so. Thanks.'
     files_to_upload_xp = "//input[@id='SupportingDoc2']"
-    file_path = r"C:\Users\HP\Desktop\RF.pdf"
+    file_path = r"C:\Users\HP\Downloads\RF.pdf"
     await page.set_input_files(files_to_upload_xp, file_path)
     await page.locator("//input[@id='Remarks']").fill(response_text)
     await page.locator("//button[normalize-space()='SAVE']").click()
@@ -82,8 +87,8 @@ async def query_process(page:Page):
 
 
 if __name__ == '__main__':
-    l = """1006721522
-    1007022008
-    """.split('\n')
+    l = """1006910087
+    1006645467
+    1006962218""".split('\n')
     for i in l:
         asyncio.run(main(registration_no=f'{i.strip()}', cdp_port=9222))

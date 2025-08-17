@@ -36,6 +36,7 @@ class AsyncTms:
 
             # get session storage
             session_storage = await self.get_session_storage(page)
+            # print(session_storage)
 
             # downloading excel
             await spreadsheet_download_as_excel_async(browser=browser,
@@ -67,9 +68,9 @@ class AsyncTms:
                 "sec-fetch-mode": "cors",
                 "sec-fetch-site": "same-site",
                 "tid": session_storage["transactionid"],
-                "uid": "USER684607",
-                "uname": "Rakesh Kumar Verma",
-                "urole": "MEDCO",
+                "uid": session_storage["userid"],
+                "uname": session_storage["username"],
+                "urole": session_storage["userRole"],
                 "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
                 "ustate": "1935"
             }
@@ -236,6 +237,7 @@ class AsyncTms:
         """
         payload = {"registrationid":f"{registration_no}"}
         r = await context.request.post(url=self.TREATMENT_INFO_URL, headers=headers, data=json.dumps(payload))
+        # print(registration_no,r)
         r_data = await r.json()
         # print(json.dumps(r_data, indent=2))
         card_is = r_data['encounter']['benid']

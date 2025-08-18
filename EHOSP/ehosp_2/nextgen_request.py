@@ -48,9 +48,9 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
 
     # single_dischargeable_ipd = one of the dischargeable_ipd
     # [
-    # [201717, datetime.datetime(2023, 1, 1, 0, 0), 'Bilateral cataracts(H26.9),Senile cataract(H25.9),Cataracts(H26.9)', ('COMPLAIN OF FEVER FOR 2-3 DAYS', 'IV PCM, IV DNS, IV CEFTRIAXONE', 'STABLE', 'FEEL WELL', 'BED REST')]
-    # [3334242, datetime.datetime(2023, 11, 30, 0, 0), 'Acute gastroenteritis(A09.9)', ('COMPLAIN OF FEVER FOR 2-3 DAYS', 'IV PCM, IV DNS, IV CEFTRIAXONE', 'STABLE', 'FEEL WELL', 'BED REST')]
-    # [2423211, datetime.datetime(2025, 6, 26, 8, 52, 55, 177491), 'Pyrexia of unknown origin(R50.9),Acute gastroenteritis(A09.9)', ('COMPLAIN OF FEVER FOR 2-3 DAYS', 'IV PCM, IV DNS, IV CEFTRIAXONE', 'STABLE', 'FEEL WELL', 'BED REST')]
+    # [201717, datetime.datetime(2023, 1, 1, 0, 0), 'Bilateral cataracts(H26.9),Senile cataract(H25.9),Cataracts(H26.9)', ('COMPLAIN OF FEVER FOR 2-3 DAYS', 'IV PCM, IV DNS, IV CEFTRIAXONE', 'STABLE', 'FEEL WELL', 'BED REST'), None]
+    # [3334242, datetime.datetime(2023, 11, 30, 0, 0), 'Acute gastroenteritis(A09.9)', ('COMPLAIN OF FEVER FOR 2-3 DAYS', 'IV PCM, IV DNS, IV CEFTRIAXONE', 'STABLE', 'FEEL WELL', 'BED REST'), None]
+    # [2423211, datetime.datetime(2025, 6, 26, 8, 52, 55, 177491), 'Pyrexia of unknown origin(R50.9),Acute gastroenteritis(A09.9)', ('COMPLAIN OF FEVER FOR 2-3 DAYS', 'IV PCM, IV DNS, IV CEFTRIAXONE', 'STABLE', 'FEEL WELL', 'BED REST'), None]
     # ]
 
 
@@ -212,18 +212,41 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
                               user_id=user_id,
                               token=token)
 
+def validate_discharge_type(single_dischargeable_ipd):
+    discharge_type_text = single_dischargeable_ipd[4]
+    ColourPrint.print_bg_red(discharge_type_text)
+    if discharge_type_text is None:
+        dis_err_msg = f'The discharge type in IPD -> {single_dischargeable_ipd[0]} is NOT mentioned. It must be any of following:\n"D : Discharge",\n"L : LAMA",\n"M : DAMA",\n"T : Transfer",\n"R : Refer",\n"A : Abscond"'
+        error_tk_box(error_title="Discharge Type Error", error_message=dis_err_msg)
+        raise ValueError(dis_err_msg)
+    else:
+        strip_discharge_type_text = str(discharge_type_text).strip()
+        print('/////////////', len(strip_discharge_type_text))
+        if len(strip_discharge_type_text) != 1:
+            not_alpha_error = f'The discharge type in IPD -> {single_dischargeable_ipd[0]} is not equal to required characters. It must be SINGLE character among the following:\n"D : Discharge",\n"L : LAMA",\n"M : DAMA",\n"T : Transfer",\n"R : Refer",\n"A : Abscond"'
+            error_tk_box(error_title="Discharge Type Error", error_message=not_alpha_error)
+            raise ValueError(not_alpha_error)
+
+        elif not strip_discharge_type_text.isalpha():
+            not_alpha_error = f'The discharge type in IPD -> {single_dischargeable_ipd[0]} is not alphabet character. It must be SINGLE alphabet character among the following:\n"D : Discharge",\n"L : LAMA",\n"M : DAMA",\n"T : Transfer",\n"R : Refer",\n"A : Abscond"'
+            error_tk_box(error_title="Discharge Type Error", error_message=not_alpha_error)
+            raise ValueError(not_alpha_error)
 
 
 def summary_entry(each_patient_summary_json:dict, single_dischargeable_ipd_entry, user_id, verified_discharge_date_is, request, token):
-    # single_dischargeable_ipd_entry = [2017287, datetime.datetime(2017, 10, 15, 0, 0), ['Pyrexia of unknown origin'], ('C/O VOMITING AND LOOSE STOOLS, FEVER', 'IV PANTOP, IV PCM, IV ANTIBIOTICS', 'VITAL STABLE', 'FEEL WELL', 'BED REST')]
+    # single_dischargeable_ipd_entry = [2017287, datetime.datetime(2017, 10, 15, 0, 0), ['Pyrexia of unknown origin, Anemia'], ('C/O VOMITING AND LOOSE STOOLS, FEVER', 'IV PANTOP, IV PCM, IV ANTIBIOTICS', 'VITAL STABLE', 'FEEL WELL', 'BED REST'), None]
 
     processed_diagnosis = single_dischargeable_ipd_entry[2]
-    processed_admission_condition = single_dischargeable_ipd_entry[3][0]
     processed_treatment = single_dischargeable_ipd_entry[3][1]
     processed_discharge_condition = single_dischargeable_ipd_entry[3][2]
     processed_brief_summary = single_dischargeable_ipd_entry[3][3]
     processed_follow_up = single_dischargeable_ipd_entry[3][4]
     processed_discharge_date_is = verified_discharge_date_is
+
+    # modifying for the diagnosis entry in condition on admission->if blank, else the value provided
+    processed_admission_condition = single_dischargeable_ipd_entry[3][0]
+    if processed_admission_condition is None:
+        processed_admission_condition = processed_diagnosis
 
     if not each_patient_summary_json["brief_summary"] :
         payload = {
@@ -304,9 +327,7 @@ def check_discharge_date_range(each_patient_summary_json:dict, single_dischargea
     datetime_discharge_date = single_dischargeable_ipd[1]
     admission_date = each_patient_summary_json["admission_date"]  # "admission_date": "17/11/2017 12:42:34"
     datetime_admission_date = datetime.datetime.strptime(admission_date, "%d/%m/%Y %H:%M:%S")
-    ColourPrint.print_yellow('<>'*50)
-    print('admission_time', datetime_admission_date, 'discharge_date', datetime_discharge_date)
-    ColourPrint.print_yellow('<>'*50)
+
 
     if datetime_discharge_date.date() == datetime_admission_date.date():
         ColourPrint.print_bg_red('Admission and Discharge dates are SAME')
@@ -326,8 +347,15 @@ def check_discharge_date_range(each_patient_summary_json:dict, single_dischargea
             error_title='Discharge Date Error',
             error_message=dis_mor_than_today_error)
         raise ValueError(dis_mor_than_today_error)
-    return datetime_discharge_date
+    # return datetime_discharge_date
 
+    final_datetime_discharge_date = datetime.datetime.combine(datetime_discharge_date.date(), datetime.datetime.now().time().replace(microsecond=0))
+
+    ColourPrint.print_yellow('<>' * 50)
+    print('admission_time', datetime_admission_date, 'discharge_date', final_datetime_discharge_date)
+    ColourPrint.print_yellow('<>' * 50)
+
+    return final_datetime_discharge_date
 
 def get_all_active_patients_list(context, token: str):
     url = "https://nextgen.ehospital.gov.in/api/ipd/common/reportPatientList/7013"
@@ -411,7 +439,7 @@ def get_fresh_token_and_userid(context):
             "request",
             lambda req: "api/user_mgmt/v1/user_project_menus" in req.url
         )
-        return token_data['headers']['authorization'],token_data['headers']['userid']
+        return token_data['headers']['authorization'], token_data['headers']['userid']
     except Exception as e:
         print(e)
     finally:
@@ -490,6 +518,36 @@ def fetch_excel(workbook_path):
     treatment_sheet = wb['TREATMENT']
     treatment_rows = list(treatment_sheet.iter_rows(min_row=2, max_col=6, values_only=True))
 
+    # treatment_dict = {}
+    # for excel_row_num, row in zip(range(2, 2 + len(treatment_rows)), treatment_rows):
+    #     key, *values = row
+    #
+    #     # ── 1. Blank row: key is None and *every* value is None ────────────────────────
+    #     if key is None and all(v is None for v in values):
+    #         continue  # skip silently ─ it's just an empty row
+    #
+    #     # ── 2. Key missing but some value(s) filled in ────────────────────────────────
+    #     if key is None:
+    #         error_tk_box(error_title='Excel Sheet Entry Error',
+    #                      error_message=f"TREATMENT sheet ‑ row {excel_row_num}: Code (first cell) is empty but one or more value cells are not → {values}"
+    #                      )
+    #         raise KeyError(
+    #             f"TREATMENT sheet ‑ row {excel_row_num}: Code (first cell) is empty "
+    #             f"but one or more value cells are not → {values}"
+    #         )
+    #
+    #     # ── 3. Key present but at least one value is missing ──────────────────────────
+    #     if any(v is None for v in values):
+    #         error_tk_box(error_title='Excel Sheet Entry Error',
+    #                      error_message=f"TREATMENT sheet ‑ row no. {excel_row_num}: Code number -> '{key}' has missing data in one or more value cells → {values}")
+    #         raise ValueError(
+    #             f"TREATMENT sheet ‑ row no. {excel_row_num}: Code number -> '{key}' has missing "
+    #             f"data in one or more value cells → {values}"
+    #         )
+    #
+    #     # ── 4. Fully valid row ────────────────────────────────────────────────────────
+    #     treatment_dict[key] = tuple(values)  # or keep them as list if you prefer
+
     treatment_dict = {}
     for excel_row_num, row in zip(range(2, 2 + len(treatment_rows)), treatment_rows):
         key, *values = row
@@ -500,25 +558,29 @@ def fetch_excel(workbook_path):
 
         # ── 2. Key missing but some value(s) filled in ────────────────────────────────
         if key is None:
-            error_tk_box(error_title='Excel Sheet Entry Error',
-                         error_message=f"TREATMENT sheet ‑ row {excel_row_num}: Code (first cell) is empty but one or more value cells are not → {values}"
-                         )
+            error_tk_box(
+                error_title='Excel Sheet Entry Error',
+                error_message=f"TREATMENT sheet - row {excel_row_num}: Code (first cell) is empty but one or more value cells are not → {values}"
+            )
             raise KeyError(
-                f"TREATMENT sheet ‑ row {excel_row_num}: Code (first cell) is empty "
+                f"TREATMENT sheet - row {excel_row_num}: Code (first cell) is empty "
                 f"but one or more value cells are not → {values}"
             )
 
-        # ── 3. Key present but at least one value is missing ──────────────────────────
-        if any(v is None for v in values):
-            error_tk_box(error_title='Excel Sheet Entry Error',
-                         error_message=f"TREATMENT sheet ‑ row no. {excel_row_num}: Code number -> '{key}' has missing data in one or more value cells → {values}")
+        # ── 3. Key present but missing values ──────────────────────────────────────────
+        # allow 2nd column (values[0]) to be None, but others (values[1:]) must not be None
+        if any(v is None for v in values[1:]):
+            error_tk_box(
+                error_title='Excel Sheet Entry Error',
+                error_message=f"TREATMENT sheet - row no. {excel_row_num}: Code number -> '{key}' has missing data in one or more mandatory value cells → {values}"
+            )
             raise ValueError(
-                f"TREATMENT sheet ‑ row no. {excel_row_num}: Code number -> '{key}' has missing "
-                f"data in one or more value cells → {values}"
+                f"TREATMENT sheet - row no. {excel_row_num}: Code number -> '{key}' has missing "
+                f"data in one or more mandatory value cells → {values}"
             )
 
         # ── 4. Fully valid row ────────────────────────────────────────────────────────
-        treatment_dict[key] = tuple(values)  # or keep them as list if you prefer
+        treatment_dict[key] = tuple(values)
 
     ColourPrint.print_blue('-=' * 50)
     print(treatment_dict)
@@ -528,7 +590,8 @@ def fetch_excel(workbook_path):
     for each_row in main_sheet_rows:
         if each_row[0] is not None:
             each_row_list = list(each_row)
-            new_each_row_list =[each_row[0]]  # new list for fresh entry of modified each data
+            """each row list [250015223, '26.07.2025', 'bb,aa', 2, None]"""
+            new_each_row_list =[each_row[0]]  # each_row[0] = ipd no # new list for fresh entry of modified each data
             print('each row list', each_row_list)
 
             """making changes to discharge date"""
@@ -558,7 +621,11 @@ def fetch_excel(workbook_path):
             except KeyError:
                 raise KeyError(f'The TREATMENT code -> "{treatment_verified_code}" in IPD: {each_row_list[0]} is not present in TREATMENT EXCEL SHEET. Please Check')
 
+            # adding the discharge type
+            new_each_row_list.append(each_row_list[-1])
+
             dischargeable_ipd.append(new_each_row_list)
+    print('------>>>>', dischargeable_ipd)
     return dischargeable_ipd
 
 
@@ -757,11 +824,15 @@ def search_snomed_js(page, term: str):
 
 def process_diagnosis_with_icd_code(page, dischargeable_ipds):  #  dischargeable_ipds =
     # [
-    # [2017237, datetime.datetime(2017, 1, 20, 0, 0), ['Acute gastroenteritis'], ('C/O VOMITING AND LOOSE STOOLS, FEVER', 'IV PANTOP, IV PCM, IV ANTIBIOTICS', 'VITAL STABLE', 'FEEL WELL', 'BED REST')]
-    # [2017287, datetime.datetime(2017, 10, 15, 0, 0), ['Pyrexia of unknown origin'], ('C/O VOMITING AND LOOSE STOOLS, FEVER', 'IV PANTOP, IV PCM, IV ANTIBIOTICS', 'VITAL STABLE', 'FEEL WELL', 'BED REST')]
-    # [2017171, datetime.datetime(2025, 6, 25, 16, 18, 18, 478228), ['Acute gastroenteritis', 'Pyrexia of unknown origin'], ('COMPLAIN OF FEVER FOR 2-3 DAYS', 'IV PCM, IV DNS, IV CEFTRIAXONE', 'STABLE', 'FEEL WELL', 'BED REST')]
+    # [2017237, datetime.datetime(2017, 1, 20, 0, 0), ['Acute gastroenteritis'], ('C/O VOMITING AND LOOSE STOOLS, FEVER', 'IV PANTOP, IV PCM, IV ANTIBIOTICS', 'VITAL STABLE', 'FEEL WELL', 'BED REST'), None]
+    # [2017287, datetime.datetime(2017, 10, 15, 0, 0), ['Pyrexia of unknown origin'], ('C/O VOMITING AND LOOSE STOOLS, FEVER', 'IV PANTOP, IV PCM, IV ANTIBIOTICS', 'VITAL STABLE', 'FEEL WELL', 'BED REST'), None]
+    # [2017171, datetime.datetime(2025, 6, 25, 16, 18, 18, 478228), ['Acute gastroenteritis', 'Pyrexia of unknown origin'], ('COMPLAIN OF FEVER FOR 2-3 DAYS', 'IV PCM, IV DNS, IV CEFTRIAXONE', 'STABLE', 'FEEL WELL', 'BED REST'), None]
     # ]
     for every_dischargeable_ipd in dischargeable_ipds:
+
+        "checking the diagnosis type"
+        validate_discharge_type(single_dischargeable_ipd=every_dischargeable_ipd)
+
         diagnosis_are = every_dischargeable_ipd[2]  # all the diagnosis of an IPD in single list, ['Acute gastroenteritis', 'Pyrexia of unknown origin']
         # print('The diagnosis are >===============>', diagnosis_are)
 
@@ -916,11 +987,12 @@ def main():
         for idx, single_dischargeable_ipd in enumerate(formatted_final_dischargeable_ipds_except_datetime, start=1):
             ColourPrint.print_pink(message_box(f'Serial No.{idx}. IPD: {single_dischargeable_ipd[0]}'))
             print(f'Single Discharge IPD: ', single_dischargeable_ipd)
-            # selecting the ipd number patient fron whole active data
+            print()
 
+            # selecting the ipd number patient from whole active data. <-- This was previously employed but not now.
             automate_discharge_with_manual_token(token=token, single_dischargeable_ipd=single_dischargeable_ipd, whole_active_patients_data=None, user_id=user_id_of_excel, context=context)
 
-            # this has been deprecated
+            # This has been deprecated. Because of no require screenshots
             # nextgen_ui(context=context, headers=headers, ipd_number_integer=single_dischargeable_ipd[0])
 
             ColourPrint.print_green(message_box(f'Completed All for IPD {single_dischargeable_ipd[0]}'))

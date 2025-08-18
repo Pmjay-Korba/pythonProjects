@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
-def error_tk_box(error_message, error_title="ERROR"):
+def error_tk_box(error_message: object, error_title: object = "ERROR") -> None:
     root = tk.Tk()
     root.withdraw()  # Hide the root window
     root.attributes("-topmost", True)  # Make sure it stays on top

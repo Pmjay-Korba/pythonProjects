@@ -9,6 +9,7 @@ from dkbssy.utils.colour_prints import ColourPrint
 from tms_playwright.discharge_to_be_done.detail_list_getter_all import is_file_older_than_2_hours
 from tms_playwright.discharge_to_be_done.detail_list_getter_all import AllListGenerator as AllListGeneratorOld
 from old_dkbssy_folder import tms_department_wise_2
+import req_1
 
 class AsyncTms:
     CDP_PORT = 9222
@@ -34,6 +35,11 @@ class AsyncTms:
 
             page = all_pages[page_index]  # selecting the first PAGE of matching page
 
+            user_agent = await page.evaluate("() => navigator.userAgent")
+            brands = await page.evaluate("() => navigator.userAgentData.brands")
+            # platform = await page.evaluate("() => navigator.userAgentData.platform")
+            sec_ch_ua = ', '.join([f'"{b["brand"]}";v="{b["version"]}"' for b in brands])
+
             # get session storage
             session_storage = await self.get_session_storage(page)
             # print(session_storage)
@@ -43,37 +49,40 @@ class AsyncTms:
                                                       download_directory_folder=self.DOWNLOAD_DIR,
                                                       sheet_url='https://docs.google.com/spreadsheets/d/1vhjV0rcODJ4lGYJBHENMnHFvqHgK25dQRt9SVpr_9N4/edit?gid=0#gid=0')
 
-            headers = {
-                "accept": "application/json",
-                "accept-encoding": "gzip, deflate, br, zstd",
-                "accept-language": "en-US,en;q=0.9",
-                "access-control-allow-origin": "https://provider.nha.gov.in/",
-                "appname": "TMS-Provider",
-                "authorization": f"Bearer {session_storage['idmToken']}",
-                "uauthorization": f"Bearer {session_storage['token']}",
-                "cache-control": "no-cache",
-                "cid": "0",
-                "content-type": "application/json; charset=UTF-8",
-                "hid": "3649",
-                "origin": "https://provider.nha.gov.in",
-                "pid": "1935",
-                "pragma": "no-cache",
-                "priority": "u=1, i",
-                "referer": "https://provider.nha.gov.in/",
-                "scode": "22",
-                "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": '"Windows"',
-                "sec-fetch-dest": "empty",
-                "sec-fetch-mode": "cors",
-                "sec-fetch-site": "same-site",
-                "tid": session_storage["transactionid"],
-                "uid": session_storage["userid"],
-                "uname": session_storage["username"],
-                "urole": session_storage["userRole"],
-                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-                "ustate": "1935"
-            }
+            # headers = {
+            #     "accept": "application/json",
+            #     "accept-encoding": "gzip, deflate, br, zstd",
+            #     "accept-language": "en-US,en;q=0.9",
+            #     "access-control-allow-origin": "https://provider.nha.gov.in/",
+            #     "appname": "TMS-Provider",
+            #     "authorization": f"Bearer {session_storage['idmToken']}",
+            #     "uauthorization": f"Bearer {session_storage['token']}",
+            #     "cache-control": "no-cache",
+            #     "cid": "0",
+            #     "content-type": "application/json; charset=UTF-8",
+            #     "hid": "3649",
+            #     "origin": "https://provider.nha.gov.in",
+            #     "pid": "1935",
+            #     "pragma": "no-cache",
+            #     "priority": "u=1, i",
+            #     "referer": "https://provider.nha.gov.in/",
+            #     "scode": "22",
+            #     "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+            #     "sec-ch-ua-mobile": "?0",
+            #     "sec-ch-ua-platform": '"Windows"',
+            #     "sec-fetch-dest": "empty",
+            #     "sec-fetch-mode": "cors",
+            #     "sec-fetch-site": "same-site",
+            #     "tid": session_storage["transactionid"],
+            #     "uid": session_storage["userid"],
+            #     "uname": session_storage["username"],
+            #     "urole": session_storage["userRole"],
+            #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+            #     "ustate": "1935"
+            # }
+
+            heads = req_1.Headers(session_storage=session_storage,context=context, sec_ch_ua=sec_ch_ua, user_agent=user_agent)
+            headers = heads.header_for_tms_1
 
             # generating the lists
             under_treatment_list_generated = await self.get_lists_of_pendings(
@@ -160,9 +169,9 @@ class AsyncTms:
         """
         ColourPrint.print_green(f"✅ Connected to page: {page}")
         session_storage = await page.evaluate("sessionStorage")
+        # print(json.dumps(session_storage, indent=2))
         return session_storage
 
-        # print(json.dumps(session_storage, indent=2))
         # print(session_storage["userid"],session_storage['token'])
 
     async def get_lists_of_pendings(self, url, search_value, context, headers):

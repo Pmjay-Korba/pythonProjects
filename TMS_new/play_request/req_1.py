@@ -398,7 +398,80 @@ async def spreadsheet_download_as_excel_async(browser, sheet_url, download_direc
     await page.close()
     await new_context.close()
 
+class Headers:
+    def __init__(self, session_storage, context, sec_ch_ua, user_agent):
+        self.session_storage=session_storage
+        self.context=context
 
+        print(user_agent)
+        print(sec_ch_ua)
+
+        self.header_for_tms_1 = {
+        "accept": "application/json",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US,en;q=0.9",
+        "access-control-allow-origin": "https://provider.nha.gov.in/",
+        "appname": "TMS-Provider",
+        "authorization": f"Bearer {self.session_storage['idmToken']}",
+        "uauthorization": f"Bearer {self.session_storage['token']}",
+        "cache-control": "no-cache",
+        "cid": "0",
+        "content-type": "application/json; charset=UTF-8",
+        "hid": "3649",
+        "origin": "https://provider.nha.gov.in",
+        "pid": "1935",
+        "pragma": "no-cache",
+        "priority": "u=1, i",
+        "referer": "https://provider.nha.gov.in/",
+        "scode": "22",
+        # "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+        "sec-ch-ua": sec_ch_ua,
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+        "tid": self.session_storage["transactionid"],
+        "uid": self.session_storage["userid"],
+        "uname": self.session_storage["username"],
+        "urole": self.session_storage["userRole"],
+        # "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+        "user-agent": user_agent,
+        "ustate": "1935"
+    }
+        self.header_for_tms_2 = {
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "access-control-allow-origin": "https://provider.nha.gov.in/",
+            "appname": "TMS-Provider",
+            "authorization": f"Bearer {self.session_storage['idmToken']}",
+            "uauthorization": f"Bearer {self.session_storage['token']}",
+            "cache-control": "no-cache",
+            "cid": "0",
+            "content-type": "application/json; charset=UTF-8",
+            "hid": "3649",
+            "origin": "https://provider.nha.gov.in",
+            "pid": "1935",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "https://provider.nha.gov.in/",
+            "scode": "22",
+            # "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+            "sec-ch-ua": '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "tid": self.session_storage["transactionid"],
+            "uid": self.session_storage["userid"],
+            "uname": self.session_storage["username"],
+            "urole": self.session_storage["userRole"],
+            # "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+            "user-agent": '"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+            "ustate": "1935"
+        }
 
 if __name__ == '__main__':
     asyncio.run(AsyncTms().main())

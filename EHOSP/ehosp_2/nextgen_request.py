@@ -136,6 +136,8 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
                     # print(patient_data)
                     # ColourPrint.print_yellow('.'*50)
 
+                    discharge_type_code_is = single_dischargeable_ipd[-1]
+
                     if not patient_data['result']:
                         payload = {
                             "uhid": each_patient_details['uhid'],
@@ -144,7 +146,7 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
                             "ward_id": each_patient_details["ward_id"],
                             "bed_id": each_patient_details["bed_id"],
                             "dis_initiated_by": user_id,
-                            "dis_type": 1,
+                            "dis_type": discharge_type_code_is,
                             "ipd_doc": each_patient_details["ipd_doctor_id"]
                         }
                         print('Payload = ', payload)
@@ -214,7 +216,7 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
 
 def validate_discharge_type(single_dischargeable_ipd):
     discharge_type_text = single_dischargeable_ipd[4]
-    ColourPrint.print_bg_red(discharge_type_text)
+    # ColourPrint.print_bg_red(discharge_type_text)
     if discharge_type_text is None:
         dis_err_msg = f'The discharge type in IPD -> {single_dischargeable_ipd[0]} is NOT mentioned. It must be any of following:\n"D : Discharge",\n"L : LAMA",\n"M : DAMA",\n"T : Transfer",\n"R : Refer",\n"A : Abscond"'
         error_tk_box(error_title="Discharge Type Error", error_message=dis_err_msg)
@@ -226,6 +228,24 @@ def validate_discharge_type(single_dischargeable_ipd):
             dis_err_msg = f'The discharge type in IPD -> {single_dischargeable_ipd[0]} is NOT correct. It must be any of following:\n"D : Discharge",\n"L : LAMA",\n"M : DAMA",\n"T : Transfer",\n"R : Refer",\n"A : Abscond"'
             error_tk_box(error_title="Discharge Type Error", error_message=dis_err_msg)
             raise ValueError(dis_err_msg)
+        '''     "dischargetypecode": 1,
+                "dischargetypename": "Cured"
+                "dischargetypecode": 3,
+                "dischargetypename": "Transferred"
+                "dischargetypecode": 4,
+                "dischargetypename": "DAMA Discharge against Medical Advice"
+                "dischargetypecode": 5,
+                "dischargetypename": "LAMA Leave against Medical Advice"
+                "dischargetypecode": 6,
+                "dischargetypename": "Absconded"
+                "dischargetypecode": 7,
+                "dischargetypename": "Referral"
+
+        '''
+        mapper = {'D':"1" , 'L':"5" , 'M':"4" , 'T':"3" , 'R':"7" , 'A':"6" }
+        dis_code_is = mapper[strip_discharge_type_text]
+        print('Discharge Code: ', strip_discharge_type_text, dis_code_is)
+        return dis_code_is
 
 
 
@@ -327,6 +347,15 @@ def check_discharge_date_range(each_patient_summary_json:dict, single_dischargea
 
     if datetime_discharge_date.date() == datetime_admission_date.date():
         ColourPrint.print_bg_red('Admission and Discharge dates are SAME')
+
+        if datetime_discharge_date.date() == datetime.datetime.now().date():
+            # print(']]]]]]]]]]]]', datetime_discharge_date.date() == datetime.datetime.now().date())
+            # print(']]]]]]]]]]]]', datetime_discharge_date.date() )
+            # print(']]]]]]]]]]]]', datetime.datetime.now().date())
+            same_date_err = f'The admission and discharge date in IPD -> {single_dischargeable_ipd[0]} is TODAY. kindly discharge tomorrow or manually'
+            error_tk_box(error_title="discharge Date Error", error_message= same_date_err)
+            raise ValueError(same_date_err)
+
         # print(datetime.datetime.combine(datetime_discharge_date.date(), datetime.time(23, 59, 59)))
         return datetime.datetime.combine(datetime_discharge_date.date(), datetime.time(23, 59, 59))
 
@@ -345,7 +374,7 @@ def check_discharge_date_range(each_patient_summary_json:dict, single_dischargea
         raise ValueError(dis_mor_than_today_error)
     # return datetime_discharge_date
 
-    final_datetime_discharge_date = datetime.datetime.combine(datetime_discharge_date.date(), datetime.datetime.now().time().replace(microsecond=0))
+    final_datetime_discharge_date = datetime.datetime.combine(datetime_discharge_date.date(), datetime.datetime.now().time().replace(microsecond=0)) - datetime.timedelta(minutes=30) # subtracted to prevent timestamp server check error
 
     ColourPrint.print_yellow('<>' * 50)
     print('admission_time', datetime_admission_date, 'discharge_date', final_datetime_discharge_date)
@@ -698,8 +727,8 @@ def validate_discharge_date(each_row_list):
 
         elif type(discharge_date) == str:
             discharge_date = discharge_date.strip()
-            if discharge_date.lower() == 't':
-                discharge_dt = datetime.datetime.now().replace(microsecond=0)
+            if discharge_date.lower() == "t":
+                discharge_dt = datetime.datetime.now().replace(microsecond=0) - datetime.timedelta(minutes=30) # subtracted to prevent timestamp server check error
                 # print(discharge_dt)
 
             elif discharge_date.count('-') == 2:  # 22-12-25
@@ -827,7 +856,7 @@ def process_diagnosis_with_icd_code(page, dischargeable_ipds):  #  dischargeable
     for every_dischargeable_ipd in dischargeable_ipds:
 
         "checking the diagnosis type"
-        validate_discharge_type(single_dischargeable_ipd=every_dischargeable_ipd)
+        discharge_code_is = validate_discharge_type(single_dischargeable_ipd=every_dischargeable_ipd)
 
         diagnosis_are = every_dischargeable_ipd[2]  # all the diagnosis of an IPD in single list, ['Acute gastroenteritis', 'Pyrexia of unknown origin']
         # print('The diagnosis are >===============>', diagnosis_are)
@@ -879,6 +908,7 @@ def process_diagnosis_with_icd_code(page, dischargeable_ipds):  #  dischargeable
         # converting the ipd number string to integer
         ipd_number_integer: int = validate_ipd_as_correct_in_excel(every_dischargeable_ipd[0])
         every_dischargeable_ipd[0] = ipd_number_integer
+        every_dischargeable_ipd[-1] = discharge_code_is
 
 
     ColourPrint.print_green('>/>>>>>>>>> Final Discharge IPDS >>>>>>>>>>/> '*2)

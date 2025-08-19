@@ -220,17 +220,13 @@ def validate_discharge_type(single_dischargeable_ipd):
         error_tk_box(error_title="Discharge Type Error", error_message=dis_err_msg)
         raise ValueError(dis_err_msg)
     else:
-        strip_discharge_type_text = str(discharge_type_text).strip()
-        print('/////////////', len(strip_discharge_type_text))
-        if len(strip_discharge_type_text) != 1:
-            not_alpha_error = f'The discharge type in IPD -> {single_dischargeable_ipd[0]} is not equal to required characters. It must be SINGLE character among the following:\n"D : Discharge",\n"L : LAMA",\n"M : DAMA",\n"T : Transfer",\n"R : Refer",\n"A : Abscond"'
-            error_tk_box(error_title="Discharge Type Error", error_message=not_alpha_error)
-            raise ValueError(not_alpha_error)
+        strip_discharge_type_text = str(discharge_type_text).strip().upper()
+        dis_code = ['D', 'L', 'M', 'T', 'R', 'A']
+        if strip_discharge_type_text not in dis_code:
+            dis_err_msg = f'The discharge type in IPD -> {single_dischargeable_ipd[0]} is NOT correct. It must be any of following:\n"D : Discharge",\n"L : LAMA",\n"M : DAMA",\n"T : Transfer",\n"R : Refer",\n"A : Abscond"'
+            error_tk_box(error_title="Discharge Type Error", error_message=dis_err_msg)
+            raise ValueError(dis_err_msg)
 
-        elif not strip_discharge_type_text.isalpha():
-            not_alpha_error = f'The discharge type in IPD -> {single_dischargeable_ipd[0]} is not alphabet character. It must be SINGLE alphabet character among the following:\n"D : Discharge",\n"L : LAMA",\n"M : DAMA",\n"T : Transfer",\n"R : Refer",\n"A : Abscond"'
-            error_tk_box(error_title="Discharge Type Error", error_message=not_alpha_error)
-            raise ValueError(not_alpha_error)
 
 
 def summary_entry(each_patient_summary_json:dict, single_dischargeable_ipd_entry, user_id, verified_discharge_date_is, request, token):

@@ -263,6 +263,8 @@ def summary_entry(each_patient_summary_json:dict, single_dischargeable_ipd_entry
     processed_admission_condition = single_dischargeable_ipd_entry[3][0]
     if processed_admission_condition is None:
         processed_admission_condition = processed_diagnosis
+    elif str(processed_admission_condition).strip() == "":
+        processed_admission_condition = processed_diagnosis
 
     if not each_patient_summary_json["brief_summary"] :
         payload = {
@@ -352,7 +354,7 @@ def check_discharge_date_range(each_patient_summary_json:dict, single_dischargea
             # print(']]]]]]]]]]]]', datetime_discharge_date.date() == datetime.datetime.now().date())
             # print(']]]]]]]]]]]]', datetime_discharge_date.date() )
             # print(']]]]]]]]]]]]', datetime.datetime.now().date())
-            same_date_err = f'The admission and discharge date in IPD -> {single_dischargeable_ipd[0]} is TODAY. kindly discharge tomorrow or manually'
+            same_date_err = f'The admission and discharge date in IPD -> {single_dischargeable_ipd[0]} is TODAY. Kindly discharge tomorrow or do it manually for now'
             error_tk_box(error_title="discharge Date Error", error_message= same_date_err)
             raise ValueError(same_date_err)
 
@@ -1027,4 +1029,5 @@ def main():
 
 
 if __name__ == "__main__":
+    fetch_excel(r"..\EHOSP\ehosp_2\ward_discharge_entry.xlsx")
     main()

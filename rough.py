@@ -41,6 +41,6 @@ with sync_playwright() as p :
     b  = p.chromium.launch(headless=True)
     context = b.new_context()
     pag = context.new_page()
-    s = search_snomed_js(page=pag, term='acute psy')
+    s = search_snomed_js(page=pag, term='femur neck')
     print(json.dumps(s, indent=2))
     print(len(s))

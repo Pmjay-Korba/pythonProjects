@@ -350,6 +350,7 @@ async def spreadsheet_download_as_excel_async(browser, sheet_url, download_direc
     page = await new_context.new_page()
     # Navigate to the Google Sheets URL
     await page.goto(sheet_url)
+    page.set_default_timeout(timeout=120_000)
     # Click on "File" -> "Download" -> "Microsoft Excel (.xlsx)"
     await page.click("text=File")
     await asyncio.sleep(0.5)

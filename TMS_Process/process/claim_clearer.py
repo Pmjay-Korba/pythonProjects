@@ -87,8 +87,12 @@ async def query_process(page:Page):
 
 
 if __name__ == '__main__':
-    l = """1006910087
-    1006645467
-    1006962218""".split('\n')
+    l = """1008660745
+    1006962218
+    1003407721
+    1007009307
+    1008506061
+    1008648428
+    1006910087""".split('\n')
     for i in l:
         asyncio.run(main(registration_no=f'{i.strip()}', cdp_port=9222))

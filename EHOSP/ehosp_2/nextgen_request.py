@@ -65,8 +65,11 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
     request = context.request
 
     # patient_current_ward_id = select_matching_ipd_from_active_patient_list_return_ward_id(ipd_number_integer=ipd_number_integer, whole_active_patient_data=whole_active_patients_data)  Not required now
-    patient_current_ward_id = get_single_patient_ward_id(context=context, token=token, ipd_no=ipd_number_integer)
-    # print('current ward id', patient_current_ward_id)
+    'check weather discharged or not'
+    check_discharged_or_not(context=context, token=token, ipd_no=ipd_number_integer)
+
+    patient_current_ward_id, patient_list_resp = get_ward_id_by_ipd(context=context, token=token, ipd_no=ipd_number_integer)
+    print('current ward id', patient_current_ward_id)
 
 
 
@@ -78,34 +81,36 @@ def automate_discharge_with_manual_token(token, single_dischargeable_ipd:list, w
     }
     'getting the names and details of all patient in a particular ward'
 
-    headers2 = {  # headers added for the changes
-        "Authorization": token,
-        "usertype": "5",  # Add this!
-        "wardid": f"{patient_current_ward_id}",  # new added
-        "healthfacilityid": "7013"
-        # "userdepartmentarray": ""  # Keep it empty if unsure — still better than missing
-    }
+    # headers2 = {  # headers added for the changes
+    #     "Authorization": token,
+    #     "usertype": "5",  # Add this!
+    #     "wardid": f"{patient_current_ward_id}",  # new added
+    #     "healthfacilityid": "7013"
+    #     # "userdepartmentarray": ""  # Keep it empty if unsure — still better than missing
+    # }
 
     # patient_list_resp = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/common/patientByWard/7013/{patient_current_ward_id}', headers=headers)  # previously working now modified and id goes in headers
-    patient_list_resp = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/common/patientByWard', headers=headers2)
+    # patient_list_resp = request.get(f'https://nextgen.ehospital.gov.in/api/ipd/common/patientByWard', headers=headers2)  # previously working now modified
     # print('---------------', patient_list_resp)
 
-    if patient_list_resp.ok:
-        patient_details = patient_list_resp.json()['result']
-        # print(patient_details)  # PRINTS ALL PATIENT DATA OF THE WARD
-        '''EACH patient_detail = {
-            "appellation_code": 2, "appellation_value": "Mrs.", "ipd_id": 11712791, "uhid": "20250068196",
-            "admno": "250009529", "f_name": "GANGA",
-            "m_name": null, "l_name": "JANGDE", "admission_date": "06/05/2025", "admission_dept_code": 21,
-            "admission_dept_name": "Medicine", "attendant_addr": null, "attendant_mobile": null, "attendant_name": "SELF",
-            "attendant_relation_code": null, "bed_id": null, "bedno": null, "billing_cat": "Exempted", "billing_cat_code": 141,
-            "billing_flag": null, "date_of_birth": "1983-05-06T00:00:00.000Z", "discharge_status": null, "dob_of_baby": null,
-            "dob_time_baby": null, "duration_of_pregnancy": null, "gender_code": "F", "gravida": null,
-            "health_facility_id": 7013, "ipd_doctor_id": "LTB_VG_6134", "mlc": 0, "mlc_number": "",
-            "mobile": "9999999999", "mother_cr_no": null, "no_of_infants": null, "parity": null,
-            "patientclass": 2, "pin_code": null, "pregnancy_indicator": null, "visit_id": "221819450",
-            "unit_id": 20625, "unit_name": "Medicine", "ward_id": 4057, "ward_name": "Female Ward"
-        }'''
+    # if patient_list_resp.ok:
+    if patient_list_resp:
+        # patient_details = patient_list_resp.json()['result']
+        patient_details = patient_list_resp
+        print(patient_details)  # PRINTS ALL PATIENT DATA OF THE WARD
+    #     '''EACH patient_detail = {
+    #         "appellation_code": 2, "appellation_value": "Mrs.", "ipd_id": 11712791, "uhid": "20250068196",
+    #         "admno": "250009529", "f_name": "GANGA",
+    #         "m_name": null, "l_name": "JANGDE", "admission_date": "06/05/2025", "admission_dept_code": 21,
+    #         "admission_dept_name": "Medicine", "attendant_addr": null, "attendant_mobile": null, "attendant_name": "SELF",
+    #         "attendant_relation_code": null, "bed_id": null, "bedno": null, "billing_cat": "Exempted", "billing_cat_code": 141,
+    #         "billing_flag": null, "date_of_birth": "1983-05-06T00:00:00.000Z", "discharge_status": null, "dob_of_baby": null,
+    #         "dob_time_baby": null, "duration_of_pregnancy": null, "gender_code": "F", "gravida": null,
+    #         "health_facility_id": 7013, "ipd_doctor_id": "LTB_VG_6134", "mlc": 0, "mlc_number": "",
+    #         "mobile": "9999999999", "mother_cr_no": null, "no_of_infants": null, "parity": null,
+    #         "patientclass": 2, "pin_code": null, "pregnancy_indicator": null, "visit_id": "221819450",
+    #         "unit_id": 20625, "unit_name": "Medicine", "ward_id": 4057, "ward_name": "Female Ward"
+    #     }'''
 
         # ColourPrint.print_pink('-=' * 25)
         # print('Count of Names:-', len(patient_details))
@@ -407,7 +412,50 @@ def get_all_active_patients_list(context, token: str):
         print(f"❌ Error {response.status}: {response.status_text}")
         return None
 
-def get_single_patient_ward_id(context, token: str, ipd_no):
+def get_ward_id_by_ipd(context, token: str, ipd_no):
+    url = 'https://nextgen.ehospital.gov.in/api/ipd/common/patientbyIdMN'
+    headers4 = {
+        "Authorization": token,
+        "Content-Type": "application/json",
+        "usertype": "5",  # Must be included based on previous discovery
+        "userdepartmentarray": ""
+    }
+
+    payload = {"pat_ipdid": f"{ipd_no}",
+               "SearchCri": "IPDID",
+               "health_facility_id": 7013
+    }
+
+    response = context.request.post(url=url, data=payload, headers=headers4)
+    if response.ok:
+        patient_data = response.json()
+        print("==>>>>>>", patient_data)
+
+        result = patient_data.get("result", [])
+        if result:  # check if list is not empty
+
+            # if result[0]['dis_summary_status'] == 2:
+            #     error_tk_box(error_title='Error',
+            #                  error_message=f"The IPD:{ipd_no}' might be already discharged. Please Check")
+            #     raise ValueError(f"The IPD:{ipd_no}' might be already discharged. Please Check")
+
+            ward_id = result[0]["ward_id"]
+            return ward_id, result
+        else:
+            error_tk_box(error_title='Error',
+                         error_message=f'The ward name and ID could not be fetched from website for IPD:{ipd_no}. Check IPD number is correct.')
+            raise ValueError(f'The ward name and ID could not be fetched from website for IPD:{ipd_no}')
+
+    else:
+        print(f"Request failed: {response.status}")
+        return None
+
+
+
+
+
+
+def check_discharged_or_not(context, token: str, ipd_no):
     url = f"https://nextgen.ehospital.gov.in/api/ipd/doc/printSummStatus/7013/{ipd_no}"
     headers = {
         "Authorization": token,
@@ -416,7 +464,7 @@ def get_single_patient_ward_id(context, token: str, ipd_no):
         "userdepartmentarray": ""
     }
 
-    response = context.request.get(url, headers=headers, timeout=60_000)
+    response = context.request.get(url, headers=headers, timeout=120_000)
     if response.ok:
         patient_data = response.json()
         print("=======>", patient_data)
@@ -428,13 +476,7 @@ def get_single_patient_ward_id(context, token: str, ipd_no):
                 error_tk_box(error_title='Error',
                              error_message=f"The IPD:{ipd_no}' might be already discharged. Please Check")
                 raise ValueError(f"The IPD:{ipd_no}' might be already discharged. Please Check")
-
-            ward_id = result[0].get("ward_id")
-            return ward_id
-        else:
-            error_tk_box(error_title='Error',
-                         error_message=f'The ward name and ID could not be fetched from website for IPD:{ipd_no}. Check IPD number is correct.')
-            raise ValueError(f'The ward name and ID could not be fetched from website for IPD:{ipd_no}')
+        return None
 
     else:
         print(f"Request failed: {response.status}")
@@ -472,7 +514,7 @@ def get_fresh_token_and_userid(context):
     finally:
         page.close()
 
-
+# NOT USED
 def select_matching_ipd_from_active_patient_list_return_ward_id(ipd_number_integer:int, whole_active_patient_data ):
     for individual_patient_data in whole_active_patient_data:
         '''individual_patient_data = 
@@ -1031,3 +1073,6 @@ def main():
 if __name__ == "__main__":
     fetch_excel(r"..\EHOSP\ehosp_2\ward_discharge_entry.xlsx")
     main()
+
+
+"""https://nextgen.ehospital.gov.in/api/ipd/doc/printSummStatus/7013/250017674 to know the dischsrge status completeed 2 is complete dis_summary_status": 1"""

@@ -1001,6 +1001,7 @@ def main():
 
         # Use existing context and open a fresh new tab
         context = browser.contexts[0]
+        context.set_default_navigation_timeout(timeout=120_000)
 
         # Set default timeout for all actions in this context
         # context.set_default_timeout(120_000)

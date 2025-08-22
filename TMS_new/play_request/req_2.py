@@ -28,6 +28,7 @@ class AsyncTms:
         async with async_playwright() as p:
             browser = await p.chromium.connect_over_cdp(f"http://localhost:{self.CDP_PORT}")
             context = browser.contexts[0]
+            context.set_default_navigation_timeout(timeout=120_000)
             all_pages = context.pages
 
             pages_indexes = await get_desired_page_indexes_in_cdp_async_for_ASYNC(user_title_of_page='PMJAY - Provider', cdp_port=self.CDP_PORT)

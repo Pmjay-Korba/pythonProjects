@@ -41,8 +41,9 @@ async def _get_desired_page_indexes_in_cdp_async(user_title_of_page, cdp_port):
 
             # raising error box if no title
             if not same_page_opened:
-                error_tk_box(error_title=title_of_error, error_message=f'No tab opened with page title: "{user_title_of_page}"')
-                raise
+                err_msg = f'No tab opened with page title: "{user_title_of_page}"'
+                error_tk_box(error_title=title_of_error, error_message=err_msg)
+                raise NameError(err_msg)
 
             # print('End')
             print('Same Page Indices = ', same_page_opened)
@@ -51,8 +52,9 @@ async def _get_desired_page_indexes_in_cdp_async(user_title_of_page, cdp_port):
 
     except PlaywrightError as e:
         if  "ECONNREFUSED" in str(e):
-            error_tk_box(error_title=title_of_error, error_message='ChromeDev is not running.\nOpen ChromeDev and login')
-            raise
+            err_msg = 'ChromeDev is not running.\nOpen ChromeDev and login in nextgen than retry'
+            error_tk_box(error_title=title_of_error, error_message=err_msg)
+            raise ConnectionError(err_msg)
 
 def get_desired_page_indexes_in_cdp_async_for_SYNC(user_title_of_page, cdp_port=9222) -> list:
     return asyncio.run(_get_desired_page_indexes_in_cdp_async(user_title_of_page=user_title_of_page, cdp_port=cdp_port))

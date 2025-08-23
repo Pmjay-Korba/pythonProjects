@@ -35,6 +35,7 @@ class AsyncTms:
             page_index = pages_indexes[0]  # selecting the first index of matching page
 
             page = all_pages[page_index]  # selecting the first PAGE of matching page
+            page.set_default_timeout(120_000)
 
             user_agent = await page.evaluate("() => navigator.userAgent")
             brands = await page.evaluate("() => navigator.userAgentData.brands")
@@ -350,8 +351,8 @@ async def spreadsheet_download_as_excel_async(browser, sheet_url, download_direc
     new_context = await browser.new_context()
     page = await new_context.new_page()
     # Navigate to the Google Sheets URL
-    await page.goto(sheet_url)
     page.set_default_timeout(timeout=120_000)
+    await page.goto(sheet_url)
     # Click on "File" -> "Download" -> "Microsoft Excel (.xlsx)"
     await page.click("text=File")
     await asyncio.sleep(0.5)

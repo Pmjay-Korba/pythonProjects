@@ -1,3 +1,6 @@
+"""# only for RF query now"""
+
+
 import asyncio
 
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
@@ -54,8 +57,10 @@ async def select_ALL_and_search(page:Page, registration_no):
     # typing the case number
     await page.locator(select_ors.searchBox).fill(registration_no)  # search box = //input[@placeholder='Search']
     # clicking the search icon
-    await page.locator(select_ors.searchIcon).click()
     await expect(page.locator(select_ors.searchIcon)).to_be_enabled()
+    await page.locator(select_ors.searchIcon).click()
+    await page.locator(select_ors.searchIcon).click()
+    await page.locator(select_ors.searchIcon).click()
 
     while True:
         try:
@@ -87,12 +92,12 @@ async def query_process(page:Page):
 
 
 if __name__ == '__main__':
-    l = """1008660745
-    1006962218
-    1003407721
-    1007009307
+    l = """1007009307
     1008506061
     1008648428
-    1006910087""".split('\n')
+    1006910087
+    1008660745
+    1006962218
+    1003407721""".split('\n')
     for i in l:
         asyncio.run(main(registration_no=f'{i.strip()}', cdp_port=9222))

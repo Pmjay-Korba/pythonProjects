@@ -4,6 +4,7 @@ from io import BytesIO
 from PIL import Image
 import os
 import random
+import re
 
 from EHOSP.tk_ehosp.alert_boxes import error_tk_box
 
@@ -86,8 +87,13 @@ def generate_pdfs_from_txt_list(txt_file_paths):
     first_folder = os.path.dirname(txt_file_paths[0])
     parent_name = os.path.basename(first_folder)
 
+    # ---- Sanitize parent_name: replace non-alphanumeric with spaces ----
+    safe_name = re.sub(r'[^A-Za-z0-9]+', ' ', parent_name).strip()
+    # Collapse multiple spaces into one
+    safe_name = re.sub(r'\s+', ' ', safe_name)
+
     # ---- Part 1: strictly < 0.95 MB ----
-    part1_pdf = os.path.join(first_folder, f"{parent_name}1.pdf")
+    part1_pdf = os.path.join(first_folder, f"{safe_name}1.pdf")
     if part1_imgs:
         ok1 = save_pdf(part1_imgs, part1_pdf, max_size=int(0.95 * 1024 * 1024))  # 0.95 MB
         if ok1:
@@ -97,7 +103,7 @@ def generate_pdfs_from_txt_list(txt_file_paths):
             print(f"⚠️ {part1_pdf} could not be compressed under 0.95 MB")
 
     # ---- Part 2: strictly < 4.95 MB ----
-    part2_pdf = os.path.join(first_folder, f"{parent_name}2.pdf")
+    part2_pdf = os.path.join(first_folder, f"{safe_name}2.pdf")
     if part2_imgs:
         ok2 = save_pdf(part2_imgs, part2_pdf, max_size=int(4.95 * 1024 * 1024))  # 4.95 MB
         if ok2:
@@ -149,6 +155,54 @@ def delete_pdf(pdf_path):
         print(f"✅ Deleted: {pdf_path}")
     else:
         print(f"⚠️ File does not exist: {pdf_path}")
+
+
+def custom_size_pdf_from_txt_list(
+    txt_file_paths,
+    max_size_mb=4.95   # custom size limit (default 4.95 MB)
+):
+    if not txt_file_paths:
+        print("No TXT files provided")
+        err_msg = f'The folder does not contain the text file. Please check'
+        error_tk_box(error_title="File Not Found", error_message=err_msg)
+        raise FileNotFoundError(err_msg)
+
+    all_images = []
+
+    # Collect all images from folders containing the TXT files
+    for txt_path in txt_file_paths:
+        folder = os.path.dirname(txt_path)
+        images = find_images_in_folder(folder)
+        all_images.extend(images)
+
+    if not all_images:
+        print("No images found in any folder")
+        return None
+
+    # ---- Shuffle before saving ----
+    random.shuffle(all_images)
+
+    # Use the name of the first folder (from first TXT) as base name
+    first_folder = os.path.dirname(txt_file_paths[0])
+    parent_name = os.path.basename(first_folder)
+
+    # ---- Sanitize parent_name: replace non-alphanumeric with spaces ----
+    safe_name = re.sub(r'[^A-Za-z0-9]+', ' ', parent_name).strip()
+    # Collapse multiple spaces into one
+    safe_name = re.sub(r'\s+', ' ', safe_name)
+
+
+    # ---- One PDF with given size ----
+    pdf_path = os.path.join(first_folder, f"{safe_name}.pdf")
+    ok = save_pdf(all_images, pdf_path, max_size=int(max_size_mb * 1024 * 1024))
+
+    if ok:
+        size = os.path.getsize(pdf_path) / (1024 * 1024)
+        print(f"✅ {pdf_path} ({size:.2f} MB, limit {max_size_mb:.2f} MB)")
+        return pdf_path
+    else:
+        print(f"⚠️ {pdf_path} could not be compressed under {max_size_mb:.2f} MB")
+        return None
 
 
 # if __name__ == "__main__":

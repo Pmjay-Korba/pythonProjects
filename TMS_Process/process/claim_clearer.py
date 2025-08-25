@@ -38,7 +38,7 @@ async def is_home_page(page:Page):
     body_texts = await page.locator("//body").text_content()
     if "Your Hospital Dashboard" not in body_texts:
         await page.locator(select_ors.homeSVG).click()
-        await expect(page.locator(select_ors.yourHospitalDashboard)).to_be_visible()
+        await expect(page.locator(select_ors.yourHospitalDashboard)).to_be_visible(timeout=60000)
         try:
             await (await page.wait_for_selector(select_ors.searchBox, timeout=2000)).fill('test')
             total_amount = (await (await page.wait_for_selector("//h1[@class=' MMPSPNfakB2FCrcdJFVH V0N_rBD9HSG_V8DXM7fh']//span[@class='BUnqLA8pVHiNDXGN4301']")).text_content())

@@ -1,15 +1,17 @@
 import asyncio
 import datetime
 import json
+import os, re
 from pathlib import Path
 import openpyxl
 from playwright.async_api import async_playwright, Page
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils.colour_prints import ColourPrint
-from tms_playwright.discharge_to_be_done.detail_list_getter_all import is_file_older_than_2_hours
 from tms_playwright.discharge_to_be_done.detail_list_getter_all import AllListGenerator as AllListGeneratorOld
 from old_dkbssy_folder import tms_department_wise_2
 import req_1
+import requests
+import urllib
 
 class AsyncTms:
     CDP_PORT = 9222
@@ -47,10 +49,12 @@ class AsyncTms:
             # print(session_storage)
 
             # downloading excel
-            await spreadsheet_download_as_excel_async(browser=browser,
-                                                      download_directory_folder=self.DOWNLOAD_DIR,
-                                                      sheet_url='https://docs.google.com/spreadsheets/d/1vhjV0rcODJ4lGYJBHENMnHFvqHgK25dQRt9SVpr_9N4/edit?gid=0#gid=0')
-
+            # await spreadsheet_download_as_excel_async(browser=browser,
+            #                                           download_directory_folder=self.DOWNLOAD_DIR,
+            #                                           sheet_url='https://docs.google.com/spreadsheets/d/1vhjV0rcODJ4lGYJBHENMnHFvqHgK25dQRt9SVpr_9N4/edit?gid=0#gid=0')
+            # downloading excel directly
+            await spreadsheet_download_directly(download_directory_folder=self.DOWNLOAD_DIR,
+                                                sheet_id='1vhjV0rcODJ4lGYJBHENMnHFvqHgK25dQRt9SVpr_9N4')
             # headers = {
             #     "accept": "application/json",
             #     "accept-encoding": "gzip, deflate, br, zstd",
@@ -375,6 +379,46 @@ async def spreadsheet_download_as_excel_async(browser, sheet_url, download_direc
     await page.close()
     await new_context.close()
 
+
+async def spreadsheet_download_directly(sheet_id: str, download_directory_folder: str):
+    """
+    Download a Google Spreadsheet as Excel directly via requests.
+    Preserves the default Google Sheets filename with spaces.
+    """
+
+    # Construct export link (includes ALL sheets/tabs)
+    direct_download_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
+
+    # Make request
+    response = requests.get(direct_download_url)
+    if response.status_code != 200:
+        raise Exception(f"❌ Failed to download sheet {sheet_id}, status {response.status_code}")
+
+    # Extract filename from Content-Disposition header
+    disposition = response.headers.get("Content-Disposition", "")
+    filename = None
+
+    # First try filename* (keeps spaces, UTF-8 encoded)
+    match_star = re.search(r"filename\*\=UTF-8''(.+)", disposition)
+    if match_star:
+        filename = urllib.parse.unquote(match_star.group(1))
+
+    # Fallback to normal filename
+    if not filename:
+        match = re.search(r'filename="(.+)"', disposition)
+        if match:
+            filename = match.group(1)
+        else:
+            filename = f"{sheet_id}.xlsx"
+
+    filepath = os.path.join(download_directory_folder, filename)
+
+    # Save Excel file
+    with open(filepath, "wb") as f:
+        f.write(response.content)
+
+    print(f"✅ Downloaded {filename} to {filepath}")
+    return filepath
 
 
 if __name__ == '__main__':

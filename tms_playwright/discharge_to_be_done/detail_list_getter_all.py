@@ -18,6 +18,7 @@ from dkbssy.utils.file_renamer import rename_file
 from old_dkbssy_folder import tms_department_wise_2
 from tms_playwright.discharge_to_be_done.discharge_details import DischargeGetParameters
 from tms_playwright.page_objs_tms import tms_xpaths
+from TMS_Process.process.file_folder_searcher import ProjectPaths
 
 
 class AllListGenerator:
@@ -352,7 +353,7 @@ class AllListGenerator:
 
         # Getting the Google Sheet
         gc = gspread.service_account(
-            filename=r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\luminous-girder-433203-m6-aaef1468d984.json")
+            filename=ProjectPaths.DOWNLOAD_DIR/"sodium-cat-452017-h0-9d08be057d0e.json")
         g_workbook = gc.open_by_key('19HHTQZe9_8hMQJDZM4aZ01RcBqVH1-xXVv3RkR2W1ls')
 
         g_worksheet = g_workbook.worksheet(sheet_name)
@@ -403,7 +404,7 @@ class AllListGenerator:
 
         # Getting the Google Sheet
         gc = gspread.service_account(
-            filename=r"G:\My Drive\GdrivePC\Hospital\RSBY\New\down\luminous-girder-433203-m6-aaef1468d984.json")
+            filename= ProjectPaths.DOWNLOAD_DIR/"sodium-cat-452017-h0-9d08be057d0e.json")
         g_workbook = gc.open_by_key('1vhjV0rcODJ4lGYJBHENMnHFvqHgK25dQRt9SVpr_9N4')
 
         g_worksheet = g_workbook.worksheet(sheet_name)

@@ -5,10 +5,13 @@ from PIL import Image
 import os
 import random
 import re
+import img2pdf
+from pathlib import Path
 
-from pyasn1_modules.rfc3279 import primeCurve
 
+from EHOSP.ehospital_proper.colour_print_ehosp import ColourPrint
 from EHOSP.tk_ehosp.alert_boxes import error_tk_box
+from dkbssy.utils.colour_prints import message_box
 
 
 def find_images_in_folder(folder):
@@ -201,15 +204,16 @@ def custom_size_pdf_from_txt_list( txt_file_paths, max_size_mb=4.95 ):
         return pdf_path
     else:
         print(f"⚠️ {pdf_path} could not be compressed under {max_size_mb:.2f} MB")
-        print("GENERATING BACKUP PDF")
+        ColourPrint.print_yellow(message_box("GENERATING BACKUP PDF ..."))
+
         return save_pdf_backup(txt_file_paths=txt_file_paths, max_size_mb=max_size_mb)
 
 
 
 def save_pdf_backup(txt_file_paths, max_size_mb=0.95):
     """
-    Create a backup PDF from images in the folders of given TXT files.
-    Includes as many images as possible until reaching max_size_mb.
+    Fast backup PDF from images in folders of given TXT files.
+    Stops before exceeding max_size_mb.
     Returns path to PDF if created, else None.
     """
     if not txt_file_paths:
@@ -219,74 +223,44 @@ def save_pdf_backup(txt_file_paths, max_size_mb=0.95):
     all_images = []
     for txt_path in txt_file_paths:
         folder = os.path.dirname(txt_path)
-        images = find_images_in_folder(folder)
+        images = [str(p) for p in Path(folder).glob("*.jpg")] + \
+                 [str(p) for p in Path(folder).glob("*.png")] + \
+                 [str(p) for p in Path(folder).glob("*.jpeg")]
         all_images.extend(images)
 
     if not all_images:
         print("⚠️ No images found in any folder")
         return None
 
-    # Shuffle to avoid same order each time
     random.shuffle(all_images)
 
-    # Base folder + name
     first_folder = os.path.dirname(txt_file_paths[0])
     parent_name = os.path.basename(first_folder)
-
-    # Sanitize name
     safe_name = re.sub(r'[^A-Za-z0-9]+', ' ', parent_name).strip()
     safe_name = re.sub(r'\s+', ' ', safe_name)
 
     output_pdf = os.path.join(first_folder, f"{safe_name}_backup.pdf")
     max_size = int(max_size_mb * 1024 * 1024)
 
-    included_images = []
-    for img_path in all_images:
-        included_images.append(img_path)
-        quality = 95
-        success = False
-
-        while quality >= 30:
-            try:
-                pil_images = [Image.open(i).convert("RGB") for i in included_images]
-
-                buffer = BytesIO()
-                pil_images[0].save(
-                    buffer,
-                    format="PDF",
-                    save_all=True,
-                    append_images=pil_images[1:],
-                    quality=quality,
-                    optimize=True
-                )
-
-                size = buffer.tell()
-                if size <= max_size:
-                    with open(output_pdf, "wb") as f:
-                        f.write(buffer.getvalue())
-                    success = True
-                    break
-                else:
-                    quality -= 5
-
-            except Exception as e:
-                print(f"⚠️ Error in backup PDF creation: {e}")
-                included_images.pop()  # skip problematic image
-                success = False
-                break
-
-        if not success:  # cannot include more images without exceeding size
-            included_images.pop()
+    included = []
+    for img in all_images:
+        test_list = included + [img]
+        pdf_bytes = img2pdf.convert(test_list)
+        if len(pdf_bytes) <= max_size:
+            included.append(img)
+        else:
             break
 
-    if included_images:
-        size_mb = os.path.getsize(output_pdf) / (1024 * 1024)
-        print(f"✅ Backup PDF saved: {output_pdf} ({size_mb:.2f} MB, limit {max_size_mb:.2f} MB)")
-        return output_pdf
-    else:
+    if not included:
         print("⚠️ Could not fit any images into backup PDF")
         return None
 
+    with open(output_pdf, "wb") as f:
+        f.write(img2pdf.convert(included))
+
+    size_mb = os.path.getsize(output_pdf) / (1024 * 1024)
+    print(f"✅ Backup PDF saved: {output_pdf} ({size_mb:.2f} MB, limit {max_size_mb:.2f} MB)")
+    return output_pdf
 
 # if __name__ == "__main__":
     # txt_path = r"C:\Users\HP\Desktop\test\1011550154.txt"

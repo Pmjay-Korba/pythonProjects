@@ -3,7 +3,7 @@ import time
 import json
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from TMS_Process.process.tks import initial_setup_for_base_folder
 
 class ProjectPaths:
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -106,7 +106,25 @@ def save_cache(cache: dict):
         print(f"[ERROR] Failed to save cache: {e}")
 
 
-def search_file_all_drives(filename: str, max_workers: int = 6, refresh_cache: bool = False) -> list[str]:
+import wmi
+
+def get_google_drives() -> list[str]:
+    """Return list of drive letters that are Google Drive mounts."""
+    c = wmi.WMI()
+    google_drives = []
+    for drive in c.Win32_LogicalDisk():
+        try:
+            if (
+                drive.FileSystem == "FAT32" and
+                drive.Size and int(drive.Size) in (16106127360, 17179869184) and
+                (drive.VolumeName and ("Google Drive" in drive.VolumeName or "@" in drive.VolumeName))
+            ):
+                google_drives.append(drive.DeviceID.rstrip(":"))
+        except Exception:
+            continue
+    return google_drives
+
+def search_file_all_drives_OLD(filename: str, max_workers: int = 6, refresh_cache: bool = False) -> list[str]:
     """
     Search all drives, update cache with ALL numeric .txt files found.
     - If refresh_cache=False (default), use cache first.
@@ -145,6 +163,52 @@ def search_file_all_drives(filename: str, max_workers: int = 6, refresh_cache: b
     save_cache(cache)
 
     # Return requested file paths
+    return cache.get(filename, [])
+
+
+def search_file_all_drives(filename: str, max_workers: int = 6, refresh_cache: bool = False) -> list[str]:
+    """
+    Search only BASE_FOLDER and Google Drives for numeric .txt files.
+    """
+    filename = normalize_filename(f"{filename}.txt")
+
+    # 🔹 Load existing cache
+    cache = load_cache()
+
+    if not refresh_cache and filename in cache:
+        print(f"[CACHE] Found {len(cache[filename])} cached matches for {filename}")
+        return cache[filename]
+
+    start_time = time.perf_counter()
+    found_all = {}
+
+    # Always include BASE_FOLDER
+    base_folder = initial_setup_for_base_folder()
+    scan_targets = [Path(base_folder)]
+
+    # Add all Google Drive mounts
+    for d in get_google_drives():
+        scan_targets.append(Path(f"{d}:/"))
+
+    print(f"[INFO] Scanning only {len(scan_targets)} locations (BASE + Google Drives)")
+
+    with ThreadPoolExecutor(max_workers=min(len(scan_targets), max_workers)) as executor:
+        futures = {executor.submit(scan_folder_for_txt, folder): folder for folder in scan_targets}
+        for future in as_completed(futures):
+            try:
+                sub_found = future.result()
+                for k, v in sub_found.items():
+                    found_all.setdefault(k, []).extend(v)
+            except Exception as e:
+                print(f"[ERROR] Folder scan failed in {futures[future]}: {e}")
+
+    elapsed = time.perf_counter() - start_time
+    print(f"[SEARCH] Indexed {len(found_all)} numeric .txt files (took {elapsed:.2f} sec)")
+
+    # Update cache
+    cache.update(found_all)
+    save_cache(cache)
+
     return cache.get(filename, [])
 
 

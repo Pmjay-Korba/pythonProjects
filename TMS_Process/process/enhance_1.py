@@ -4,7 +4,7 @@ import json
 import gspread
 from playwright.async_api import async_playwright
 from TMS_Process.process.claim_clearer import is_home_page, select_ALL_and_search
-from TMS_Process.process.tks import initial_setup
+from TMS_Process.process.tks import initial_setup_for_base_folder
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
 from TMS_Process.process.enhance_2 import headers_for_tms, validate_registration_no

@@ -6,6 +6,7 @@ from playwright.async_api import async_playwright, Page, TimeoutError, expect
 
 from EHOSP.tk_ehosp.alert_boxes import error_tk_box, tk_ask_yes_no, tk_ask_input, select_ward
 from TMS_Process.process.claim_clearer import is_home_page, select_ALL_and_search
+from TMS_Process.process.tks import initial_setup_for_base_folder
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils.colour_prints import ColourPrint, message_box
 from TMS_Process.process.file_folder_searcher import search_file_all_drives, ProjectPaths
@@ -27,6 +28,8 @@ def update_last_saved(CURRENT_SAVE, registration_no: str):
         json.dump({"query_clear": registration_no}, f, indent=4)
 
 async def _main(reg_multiline_str, cdp_port=9222):
+    "setting up base folder"
+    BASE_FOLDER = initial_setup_for_base_folder()
 
     # print(pdf_1mb,pdf_2mb)
     CURRENT_SAVE = ProjectPaths.DOWNLOAD_DIR/"current_saves.json"

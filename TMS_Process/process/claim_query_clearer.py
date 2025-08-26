@@ -93,18 +93,31 @@ async def _main(reg_multiline_str, cdp_port=9222):
                 delete_pdf(pdf_1mb)
                 delete_pdf(pdf_2mb)
 
-            # if caseview.strip().lower().startswith('under'):
-            #     pdf_1mb = _create_custom_pdf(registration_no=registration_no)
-            #     await enhancement(page=page, pdf_1=pdf_1mb)
-            #     delete_pdf(pdf_1mb)
+            if caseview.strip().lower().startswith('under'):
+                pdf_1mb = _create_custom_pdf(registration_no=registration_no)
+                await enhancement(page=page, pdf_1=pdf_1mb)
+                delete_pdf(pdf_1mb)
+
+            else:
+                answer = tk_ask_yes_no(question=f'The {registration_no} is not in "Preauth query", or "Claim query, or "Under treatment".\nDo you want to proceed to next case.')
+                if not answer:
+                    error_tk_box(error_message='User Stopped', error_title='Error')
+                    raise ValueError('User Stopped. The user input  was cancelled')
+
 
             # ✅ update progress after each successful run
             update_last_saved(registration_no=registration_no, CURRENT_SAVE=CURRENT_SAVE)
+
+            await asyncio.sleep(5)
 
 def _create_files_pdfs(registration_no):
     ColourPrint.print_yellow(message_box('Please wait. Scanning drives...'))
     text_file_path = search_file_all_drives(filename=registration_no)
     print(json.dumps(text_file_path, indent=2))
+    if not text_file_path:
+        err_msg = f'The txt file is not present in the folder for registration no {registration_no}.'
+        error_tk_box(error_message=err_msg)
+        raise FileNotFoundError(err_msg)
     pdf_1mb, pdf_2mb = generate_pdfs_from_txt_list(text_file_path)
     return pdf_1mb, pdf_2mb
 
@@ -112,6 +125,10 @@ def _create_custom_pdf(registration_no):
     ColourPrint.print_yellow(message_box('Please wait. Scanning drives...'))
     text_file_path = search_file_all_drives(filename=registration_no)
     print(json.dumps(text_file_path, indent=2))
+    if not text_file_path:
+        err_msg = f'The txt file is not present in the folder for registration no {registration_no}.'
+        error_tk_box(error_message=err_msg)
+        raise FileNotFoundError(err_msg)
     pdf_1mb = custom_size_pdf_from_txt_list(txt_file_paths=text_file_path, max_size_mb=0.95)
     return pdf_1mb
 
@@ -172,6 +189,7 @@ async def enhancement(page:Page, pdf_1):
     await page.locator("//button[normalize-space()='Initiate Enhancement']").click()
     await page.locator("//button[normalize-space()='YES']").click()
     depart = await page.locator("//th[normalize-space()='Speciality']/ancestor::table/tbody//tr[1]/td[2]").text_content()
+
     # show more
     await page.locator("//th[normalize-space()='Speciality']/ancestor::table/tbody//tr[1]/td[3]//span").click()
     diagnosis = await page.locator("//th[normalize-space()='Speciality']/ancestor::table/tbody//tr[1]/td[3]/p").text_content()
@@ -180,9 +198,6 @@ async def enhancement(page:Page, pdf_1):
 
     print(depart, diagnosis)
 
-
-
-    #
     await page.locator("(//label[normalize-space()='Speciality:']/ancestor::div[normalize-space(@class)='row']//input[@type='text' and contains(@id,'react-select')])[1]").fill(depart)
     # await page.locator("//input[@id='react-select-36-input']").fill(depart)
     await page.keyboard.press(key='Enter')
@@ -193,7 +208,7 @@ async def enhancement(page:Page, pdf_1):
     days_enhanced_int = [int(i) for i in days_enhanced_str]
     total_enhanced = sum(days_enhanced_int)
     answer = tk_ask_yes_no(
-        question=f'The total enhanced already taken is: {total_enhanced} days.\nDo You want to take more enhancement.')  # returns True False
+        question=f'The total enhanced already taken is: {total_enhanced} days.\nDo You want to take more enhancement.\n\nIf clicked "NO" it will proceed to next case')  # returns True False
     if answer:
         "if yes diagnosis is filled"
         dd = page.locator("(//label[normalize-space()='Speciality:']/ancestor::div[normalize-space(@class)='row']//input[@type='text' and contains(@id,'react-select')])[2]")
@@ -231,13 +246,15 @@ async def enhancement(page:Page, pdf_1):
         await page.keyboard.press(key='Enter')
 
         await page.set_input_files("//input[@type='file']", pdf_1)
-        await page.locator("//div[div[label[normalize-space()='Enhancement Reason:']]]//img[@class and not(@width)]").click()
+        await page.locator("//div[div[label[normalize-space()='Enhancement Reason:']]]//img[@class='m9FzljqXbDJyFhzambbf']").click()
         await page.locator("//div[contains(text(),'Investigations')]/parent::div//parent::div//button[@type]").click()
         await page.locator("//button[normalize-space()='Add Bed Side Photo']").click()
         await page.set_input_files("//label[normalize-space()='Upload Attachment']/following-sibling::div//input", pdf_1)
         await page.locator("//button[contains(@data-toggle,'collapse')][normalize-space()='ADD']").click()
 
-        
+        await page.locator("//button[normalize-space()='VALIDATE & PREVIEW']").click()
+        await page.locator("//button[normalize-space()='SUBMIT ENHANCEMENT']").click()
+        await page.locator("//label[normalize-space()='Are you sure want to submit?']/ancestor::div[@class='modal-content']//button[normalize-space()='YES']").click()
 
 
 

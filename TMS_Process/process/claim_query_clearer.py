@@ -9,8 +9,9 @@ from TMS_Process.process.claim_clearer import is_home_page, select_ALL_and_searc
 from TMS_Process.process.tks import initial_setup_for_base_folder
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils.colour_prints import ColourPrint, message_box
-from TMS_Process.process.file_folder_searcher import search_file_all_drives, ProjectPaths
-from TMS_Process.process.pdf_creator import generate_pdfs_from_txt_list, delete_pdf, custom_size_pdf_from_txt_list
+from TMS_Process.process.file_folder_searcher import search_file_all_drives_base, ProjectPaths
+from TMS_Process.process.pdf_creator import generate_pdfs_from_txt_list, delete_pdf, custom_size_pdf_from_txt_list, \
+    save_pdf_backup
 
 
 def load_last_saved(CURRENT_SAVE):
@@ -58,10 +59,10 @@ async def _main(reg_multiline_str, cdp_port=9222):
         multi_lined_list:list = reg_multiline_str.split()
 
         "Commented as saving is causing problem in testing"
-        # # checking if the last save is in list
-        # if last_saved and last_saved in multi_lined_list:
-        #     start_index = multi_lined_list.index(last_saved)+1
-        #     print("Start index: ",start_index)
+        # checking if the last save is in list
+        if last_saved and last_saved in multi_lined_list:
+            start_index = multi_lined_list.index(last_saved)+1
+            print("Start index: ",start_index)
 
 
         for registration_no in multi_lined_list[start_index:]:
@@ -101,11 +102,11 @@ async def _main(reg_multiline_str, cdp_port=9222):
                 await enhancement(page=page, pdf_1=pdf_1mb)
                 delete_pdf(pdf_1mb)
 
-            else:
-                answer = tk_ask_yes_no(question=f'The {registration_no} is not in "Preauth query", or "Claim query, or "Under treatment".\nDo you want to proceed to next case.')
-                if not answer:
-                    error_tk_box(error_message='User Stopped', error_title='Error')
-                    raise ValueError('User Stopped. The user input  was cancelled')
+            # else:
+            #     answer = tk_ask_yes_no(question=f'The {registration_no} is not in "Preauth query", or "Claim query, or "Under treatment".\nDo you want to proceed to next case.')
+            #     if not answer:
+            #         error_tk_box(error_message='User Stopped', error_title='Error')
+            #         raise ValueError('User Stopped. The user input  was cancelled')
 
 
             # ✅ update progress after each successful run
@@ -115,7 +116,7 @@ async def _main(reg_multiline_str, cdp_port=9222):
 
 def _create_files_pdfs(registration_no):
     ColourPrint.print_yellow(message_box('Please wait. Scanning drives...'))
-    text_file_path = search_file_all_drives(filename=registration_no)
+    text_file_path = search_file_all_drives_base(filename=registration_no)
     print(json.dumps(text_file_path, indent=2))
     if not text_file_path:
         err_msg = f'The txt file is not present in the folder for registration no {registration_no}.'
@@ -126,13 +127,13 @@ def _create_files_pdfs(registration_no):
 
 def _create_custom_pdf(registration_no):
     ColourPrint.print_yellow(message_box('Please wait. Scanning drives...'))
-    text_file_path = search_file_all_drives(filename=registration_no)
+    text_file_path = search_file_all_drives_base(filename=registration_no)
     print(json.dumps(text_file_path, indent=2))
     if not text_file_path:
         err_msg = f'The txt file is not present in the folder for registration no {registration_no}.'
         error_tk_box(error_message=err_msg)
         raise FileNotFoundError(err_msg)
-    pdf_1mb = custom_size_pdf_from_txt_list(txt_file_paths=text_file_path, max_size_mb=0.95)
+    pdf_1mb = save_pdf_backup(txt_file_paths=text_file_path, max_size_mb=0.95)
     return pdf_1mb
 
 async def claim_query_clearer(page, pdf_1mb, pdf_2mb, registration_no=None):

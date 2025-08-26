@@ -239,7 +239,7 @@ def save_pdf_backup(txt_file_paths, max_size_mb=0.95):
     safe_name = re.sub(r'[^A-Za-z0-9]+', ' ', parent_name).strip()
     safe_name = re.sub(r'\s+', ' ', safe_name)
 
-    output_pdf = os.path.join(first_folder, f"{safe_name}_backup.pdf")
+    output_pdf = os.path.join(first_folder, f"{safe_name}.pdf")
     max_size = int(max_size_mb * 1024 * 1024)
 
     included = []

@@ -62,14 +62,25 @@ async def select_ALL_and_search(page:Page, registration_no):
     await page.locator(select_ors.searchIcon).click()
     await page.locator(select_ors.searchIcon).click()
 
+    # Wait for the result in a stable way
     while True:
         try:
-            # await page.wait_for_selector("//p[contains(text(),'Registration ID:')]", timeout=2000)  # all ids labels
-            await page.wait_for_selector(f"//strong[contains(text(),'{registration_no}')]", timeout=2000)  # all ids labels
-            # print('cccccccccccccccccccccc')
-            break
+            el = await page.wait_for_selector(
+                f"//strong[normalize-space()='{registration_no}']",
+                timeout=2000,
+                state="visible"
+            )
+            # double-check stability
+            await asyncio.sleep(1)
+            if await el.is_visible():
+                # Highlight element in UI
+                await el.evaluate(
+                    "node => node.style.border='3px solid red'"
+                )
+                # ColourPrint.print_green(f"✅ Found and highlighted {registration_no}")
+                break
         except TimeoutError:
-            ColourPrint.print_yellow("Timeout error -->")
+            ColourPrint.print_yellow("⏳ Timeout, retrying search...")
             await page.locator(select_ors.searchIcon).click()
 
     searched_reg_no_xp = f"// strong[normalize-space()='{registration_no}']/parent::p/parent::div/following-sibling::div//*[name()='svg']"

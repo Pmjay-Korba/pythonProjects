@@ -5,6 +5,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from TMS_Process.process.tks import initial_setup_for_base_folder
 
+
 class ProjectPaths:
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
     FILE_PATH = Path(__file__).resolve()
@@ -124,7 +125,7 @@ def get_google_drives() -> list[str]:
             continue
     return google_drives
 
-def search_file_all_drives_OLD(filename: str, max_workers: int = 6, refresh_cache: bool = False) -> list[str]:
+def search_file_all_drives_OLDS(filename: str, max_workers: int = 6, refresh_cache: bool = False) -> list[str]:
     """
     Search all drives, update cache with ALL numeric .txt files found.
     - If refresh_cache=False (default), use cache first.
@@ -166,9 +167,11 @@ def search_file_all_drives_OLD(filename: str, max_workers: int = 6, refresh_cach
     return cache.get(filename, [])
 
 
-def search_file_all_drives(filename: str, max_workers: int = 6, refresh_cache: bool = False) -> list[str]:
+
+def search_file_all_drives_base(filename: str, max_workers: int = 6, refresh_cache: bool = False, log_every: int = 500) -> list[str]:
     """
     Search only BASE_FOLDER and Google Drives for numeric .txt files.
+    Shows progress every `log_every` folders visited.
     """
     filename = normalize_filename(f"{filename}.txt")
 
@@ -192,6 +195,23 @@ def search_file_all_drives(filename: str, max_workers: int = 6, refresh_cache: b
 
     print(f"[INFO] Scanning only {len(scan_targets)} locations (BASE + Google Drives)")
 
+    def scan_folder_for_txt(folder: Path) -> dict[str, list[str]]:
+        found = {}
+        count = 0
+        for root, _, files in os.walk(folder):
+            count += 1
+            if count % log_every == 0:
+                print(f"[SCAN] Still scanning {folder} ... visited {count} folders")
+
+            for f in files:
+                if f.endswith(".txt") and f[:-4].isdigit():  # numeric .txt
+                    key = normalize_filename(f)
+                    found.setdefault(key, []).append(str(Path(root) / f))
+
+        print(f"[DONE] Finished {folder} ({len(found)} unique files, {count} folders visited)")
+        return found
+
+    # 🔹 Parallel scanning
     with ThreadPoolExecutor(max_workers=min(len(scan_targets), max_workers)) as executor:
         futures = {executor.submit(scan_folder_for_txt, folder): folder for folder in scan_targets}
         for future in as_completed(futures):
@@ -205,7 +225,7 @@ def search_file_all_drives(filename: str, max_workers: int = 6, refresh_cache: b
     elapsed = time.perf_counter() - start_time
     print(f"[SEARCH] Indexed {len(found_all)} numeric .txt files (took {elapsed:.2f} sec)")
 
-    # Update cache
+    # 🔹 Update cache
     cache.update(found_all)
     save_cache(cache)
 
@@ -216,5 +236,5 @@ def search_file_all_drives(filename: str, max_workers: int = 6, refresh_cache: b
 
 if __name__ == "__main__":
     # first run will scan, later runs will use cache instantly
-    result = search_file_all_drives("1010869893", refresh_cache=False)
+    result = search_file_all_drives_base("1010869893", refresh_cache=False)
     print(result)

@@ -129,3 +129,5 @@ def listen_hotkey():
 if __name__ == "__main__":
     print("✅ PDF hotkey script running. Press Ctrl+Shift+Alt+P in Explorer folder...")
     listen_hotkey()
+
+# adde

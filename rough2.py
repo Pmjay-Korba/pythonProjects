@@ -1,82 +1,76 @@
+from playwright.async_api import async_playwright
+import asyncio
+import requests
+
+from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 
 
-p = {
-  "userlogintime": "1755258399066",
-  "parententityid": "1935",
-  "entityname": "Lt Bisahu Das Mahant Memorial Govt Medical Collage Affiliated Hospital( HOSP22G146659 )- KORBA",
-  "fixscode": "22",
-  "entityid": "3649",
-  "loc": "null",
-  "username": "Yamini Verma",
-  "token": "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",
-  "userRole": "Medical-Superintendent",
-  "idmUUID": "3572057d-a57e-4203-b51f-71a10ceb90c7",
-  "tokenrefreshtime": "8/15/2025, 5:33:40 PM",
-  "hospital": "N",
-  "fixentityid": "3649",
-  "clusterid": "0",
-  "tokenrefreshtimestamp": "1755259420283",
-  "userid": "USER7490958",
-  "scode": "22",
-  "transactionid": "NHA:11398861-6c05-4578-842b-aceeed36bb56",
-  "ipadress": "undefined",
-  "tokenidamtimestamp": "1755258399066",
-  "idmToken": "eyJhbGciOiJBMTI4S1ciLCJlbmMiOiJBMTI4R0NNIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIiwiemlwIjoiREVGIiwia2lkIjoiNCJ9.IV4GweAg3xjjDCzhdWZXjpT0yO-hn9k0.zIr3nfjs3Kitqwl4.v7QhWwLntmEpXZ-DXjIwZATT2vrIqFH1tsCuGddEvSjx8VhlyCWUpkkWDi6Kwzgky7doFL27JJGyI0__qtfEEQ_bZtXe9m7Z11lLqaYb4KAXNwEZjGGCxNhbfM0wLRrXe_RhceDv1lZZXoV3AbJAyqSVnD2Ij7LwKnbY8_DUPPsadIcJvEFiy7F95LWl-PgT-6aJPVsdEyOg4qVS6iIIXuqCcGShIw8qpmQfaeTaQv8YMXo7C2aGx6wX8B_SaMYuuUufJVyTtdCZeXbJ2HI7-3dDpuz4I1JEJld4lJ4f4ObAgxmAKFMZ2Fi2fBbUCMaqW9j5slwPZO4ygfMqW1eN-gGYTctFfV4Vln1P_niba1v19VVyIC94kQg2gEq8LK5-dGMGD1CfK4IR7LQYwSyoyppUfH_Oluevf7R_vf2ASY-snE9D7f0lURI07zb-T_9DWX6Gqll5zNDbZLcqampLjdZtxeXxc3rf5TlCIiBp13JCZZbOaOFqDGB5rNirbgVwRPBPhCzOhsbkCUkUt19RdJSKL_G7nobK55wGfDoqqz5f3s5du9_OU6kHZsEIgyt_cxVuKaeqWzD60zQUq49YYPW6W7TwUsS6XbJ-ZNSl0N9IdsGVk9mpQi1C2Axf5ip6yMD-7d3EaFGOLsbO6tueciOydSMnK_6likvhCbcve74n88Z7WqK1OcEEKITWqcmRPU6rD-OqGnUygpXyDH3HlcvcvHI-Q63Dkj6c1olGQxDZ322HYHL2c3w4hF6MH99JVFCwuA9VJSfNFGf_2doCKK5-R5stwgKWQ-yF0O84UalVCkMv6bytWhHQOxW6iaVl7Jye7uRnBx04KSXRTUsR5WJ_PTRlwqIF5rZg8EgxjXYDzdcBUWgDaM2UnuUsQpCrTA18EpOTlWX5rDhzXaubOpxa8v8mBd1lG4juumT1OaeiXsIoGQnbPj_92M68nqK-Q7cGi0q7IZ88AWI8E2mUlN-4PoBV68TqchJtzZGg_87Kk-Rr_foRGoNnb2PrbqIhu_p71LMaYRNnNgW8lPVHN1obr9t1eF7f3JZ9NNpU-YRH6YIH-hIZgAvFkZx2oZcgETouzYiLwMMBLx-xNr5PzhOstnfq5fgCpUK9KfyqqN-4GKvA9acL9dZRKb9dHLCM4sukVCMoVX9QwqO4E0uQVAy8THCuKyY-HpPVm5kLsjhOhf_ca-PJBh7QAJeY5XSDz_NSHXItaNDKd5WoCxKlI65IBA2YIomuoT_0o6_l0ooYTByDN8iUnsm795giezqMo7eU1KhBKExydvuPdIklWX7D0uTUdzEHgJgDMnr6H9qZ7wcB3VZRO0STf99MxUee0bx9geQiLbcjaAXtiDuE9z6wmdvDcCl6zFtlAAsTiZ4-36yfU8YJFJSiveY.7G89gC54zwsEH3dowWMPEw",
-  "fixparententityid": "1935"
-}
+async def main(case_number, amount):
+    user_title_of_page = 'Shaheed Veer Narayan Singh Ayushman Swasthya Yojna'
+    page_indexes = await get_desired_page_indexes_in_cdp_async_for_ASYNC(
+        user_title_of_page=user_title_of_page
+    )
 
-'''accept:application/json
-access-control-allow-origin:https://provider.nha.gov.in/
-appname:TMS-Provider
-authorization:Bearer eyJhbGciOiJBMTI4S1ciLCJlbmMiOiJBMTI4R0NNIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIiwiemlwIjoiREVGIiwia2lkIjoiNCJ9.IV4GweAg3xjjDCzhdWZXjpT0yO-hn9k0.zIr3nfjs3Kitqwl4.v7QhWwLntmEpXZ-DXjIwZATT2vrIqFH1tsCuGddEvSjx8VhlyCWUpkkWDi6Kwzgky7doFL27JJGyI0__qtfEEQ_bZtXe9m7Z11lLqaYb4KAXNwEZjGGCxNhbfM0wLRrXe_RhceDv1lZZXoV3AbJAyqSVnD2Ij7LwKnbY8_DUPPsadIcJvEFiy7F95LWl-PgT-6aJPVsdEyOg4qVS6iIIXuqCcGShIw8qpmQfaeTaQv8YMXo7C2aGx6wX8B_SaMYuuUufJVyTtdCZeXbJ2HI7-3dDpuz4I1JEJld4lJ4f4ObAgxmAKFMZ2Fi2fBbUCMaqW9j5slwPZO4ygfMqW1eN-gGYTctFfV4Vln1P_niba1v19VVyIC94kQg2gEq8LK5-dGMGD1CfK4IR7LQYwSyoyppUfH_Oluevf7R_vf2ASY-snE9D7f0lURI07zb-T_9DWX6Gqll5zNDbZLcqampLjdZtxeXxc3rf5TlCIiBp13JCZZbOaOFqDGB5rNirbgVwRPBPhCzOhsbkCUkUt19RdJSKL_G7nobK55wGfDoqqz5f3s5du9_OU6kHZsEIgyt_cxVuKaeqWzD60zQUq49YYPW6W7TwUsS6XbJ-ZNSl0N9IdsGVk9mpQi1C2Axf5ip6yMD-7d3EaFGOLsbO6tueciOydSMnK_6likvhCbcve74n88Z7WqK1OcEEKITWqcmRPU6rD-OqGnUygpXyDH3HlcvcvHI-Q63Dkj6c1olGQxDZ322HYHL2c3w4hF6MH99JVFCwuA9VJSfNFGf_2doCKK5-R5stwgKWQ-yF0O84UalVCkMv6bytWhHQOxW6iaVl7Jye7uRnBx04KSXRTUsR5WJ_PTRlwqIF5rZg8EgxjXYDzdcBUWgDaM2UnuUsQpCrTA18EpOTlWX5rDhzXaubOpxa8v8mBd1lG4juumT1OaeiXsIoGQnbPj_92M68nqK-Q7cGi0q7IZ88AWI8E2mUlN-4PoBV68TqchJtzZGg_87Kk-Rr_foRGoNnb2PrbqIhu_p71LMaYRNnNgW8lPVHN1obr9t1eF7f3JZ9NNpU-YRH6YIH-hIZgAvFkZx2oZcgETouzYiLwMMBLx-xNr5PzhOstnfq5fgCpUK9KfyqqN-4GKvA9acL9dZRKb9dHLCM4sukVCMoVX9QwqO4E0uQVAy8THCuKyY-HpPVm5kLsjhOhf_ca-PJBh7QAJeY5XSDz_NSHXItaNDKd5WoCxKlI65IBA2YIomuoT_0o6_l0ooYTByDN8iUnsm795giezqMo7eU1KhBKExydvuPdIklWX7D0uTUdzEHgJgDMnr6H9qZ7wcB3VZRO0STf99MxUee0bx9geQiLbcjaAXtiDuE9z6wmdvDcCl6zFtlAAsTiZ4-36yfU8YJFJSiveY.7G89gC54zwsEH3dowWMPEw
-cache-control:no-cache
-cid:0
-content-type:application/json; charset=UTF-8
-hid:3649
-pid:1935
-pragma:no-cache
-referer:https://provider.nha.gov.in/
-scode:22
+    if not page_indexes:
+        print("Desired page not found.")
+        return
 
-"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"
-sec-ch-ua-mobile:?0
-sec-ch-ua-platform:"Windows"
+    async with async_playwright() as p:
+        cdp_for_main = 9222
+        browser = await p.chromium.connect_over_cdp(f"http://localhost:{cdp_for_main}")
+        context = browser.contexts[0]
+        page = context.pages[page_indexes[0]]
 
-tid:NHA:11398861-6c05-4578-842b-aceeed36bb56
-uauthorization:Bearer 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
-uid:USER7490958
-uname:Yamini Verma
-urole:Medical-Superintendent
-user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
-ustate:1935
-'''
+        # Get cookies
+        cookies = await context.cookies()
+        session_cookie = next((c for c in cookies if c['name'] == 'ASP.NET_SessionId'), None)
 
-"""
-clusterid	0	
-entityid	3649	
-entityname	Lt Bisahu Das Mahant Memorial Govt Medical Collage Affiliated Hospital( HOSP22G146659 )- KORBA	
-fixentityid	3649	
-fixparententityid	1935	
-fixscode	22	
-hospital	N	
-idmToken	eyJhbGciOiJBMTI4S1ciLCJlbmMiOiJBMTI4R0NNIiwidHlwIjoiSldUIiwiY3R5IjoiSldUIiwiemlwIjoiREVGIiwia2lkIjoiNCJ9.IV4GweAg3xjjDCzhdWZXjpT0yO-hn9k0.zIr3nfjs3Kitqwl4.v7QhWwLntmEpXZ-DXjIwZATT2vrIqFH1tsCuGddEvSjx8VhlyCWUpkkWDi6Kwzgky7doFL27JJGyI0__qtfEEQ_bZtXe9m7Z11lLqaYb4KAXNwEZjGGCxNhbfM0wLRrXe_RhceDv1lZZXoV3AbJAyqSVnD2Ij7LwKnbY8_DUPPsadIcJvEFiy7F95LWl-PgT-6aJPVsdEyOg4qVS6iIIXuqCcGShIw8qpmQfaeTaQv8YMXo7C2aGx6wX8B_SaMYuuUufJVyTtdCZeXbJ2HI7-3dDpuz4I1JEJld4lJ4f4ObAgxmAKFMZ2Fi2fBbUCMaqW9j5slwPZO4ygfMqW1eN-gGYTctFfV4Vln1P_niba1v19VVyIC94kQg2gEq8LK5-dGMGD1CfK4IR7LQYwSyoyppUfH_Oluevf7R_vf2ASY-snE9D7f0lURI07zb-T_9DWX6Gqll5zNDbZLcqampLjdZtxeXxc3rf5TlCIiBp13JCZZbOaOFqDGB5rNirbgVwRPBPhCzOhsbkCUkUt19RdJSKL_G7nobK55wGfDoqqz5f3s5du9_OU6kHZsEIgyt_cxVuKaeqWzD60zQUq49YYPW6W7TwUsS6XbJ-ZNSl0N9IdsGVk9mpQi1C2Axf5ip6yMD-7d3EaFGOLsbO6tueciOydSMnK_6likvhCbcve74n88Z7WqK1OcEEKITWqcmRPU6rD-OqGnUygpXyDH3HlcvcvHI-Q63Dkj6c1olGQxDZ322HYHL2c3w4hF6MH99JVFCwuA9VJSfNFGf_2doCKK5-R5stwgKWQ-yF0O84UalVCkMv6bytWhHQOxW6iaVl7Jye7uRnBx04KSXRTUsR5WJ_PTRlwqIF5rZg8EgxjXYDzdcBUWgDaM2UnuUsQpCrTA18EpOTlWX5rDhzXaubOpxa8v8mBd1lG4juumT1OaeiXsIoGQnbPj_92M68nqK-Q7cGi0q7IZ88AWI8E2mUlN-4PoBV68TqchJtzZGg_87Kk-Rr_foRGoNnb2PrbqIhu_p71LMaYRNnNgW8lPVHN1obr9t1eF7f3JZ9NNpU-YRH6YIH-hIZgAvFkZx2oZcgETouzYiLwMMBLx-xNr5PzhOstnfq5fgCpUK9KfyqqN-4GKvA9acL9dZRKb9dHLCM4sukVCMoVX9QwqO4E0uQVAy8THCuKyY-HpPVm5kLsjhOhf_ca-PJBh7QAJeY5XSDz_NSHXItaNDKd5WoCxKlI65IBA2YIomuoT_0o6_l0ooYTByDN8iUnsm795giezqMo7eU1KhBKExydvuPdIklWX7D0uTUdzEHgJgDMnr6H9qZ7wcB3VZRO0STf99MxUee0bx9geQiLbcjaAXtiDuE9z6wmdvDcCl6zFtlAAsTiZ4-36yfU8YJFJSiveY.7G89gC54zwsEH3dowWMPEw	
-idmUUID	3572057d-a57e-4203-b51f-71a10ceb90c7	
+        if not session_cookie:
+            print("Session cookie not found.")
+            return
 
-idmUUID	3572057d-a57e-4203-b51f-71a10ceb90c7	
-ipadress	undefined	
-loc	null	
-parententityid	1935	
-scode	22	
-token	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	
-tokenidamtimestamp	1755258399066
+        asp_net_session = session_cookie['value']
+        print(f"Extracted ASP.NET_SessionId: {asp_net_session}")
 
-tokenidamtimestamp	1755258399066	
-tokenrefreshtime	8/15/2025, 5:16:39 PM	
-tokenrefreshtimestamp	1755258399066	
-transactionid	NHA:11398861-6c05-4578-842b-aceeed36bb56	
-userRole	Medical-Superintendent	
-userid	USER7490958	
-userlogintime	1755258399066	
-username	Yamini Verma	
+        # Make the POST request to get data
+        url = "https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleApViewDME.aspx/getRemark"
+        headers = {
+            "Content-Type": "application/json"
+        }
+        cookies_dict = {
+            "ASP.NET_SessionId": asp_net_session
+        }
+        payload = {
+            "caseNoReqR": f"{case_number}"  # Example case number
+        }
 
-"""
+        response = requests.post(url, headers=headers, cookies=cookies_dict, json=payload)
+
+        if response.ok:
+            data = response.json()
+            print("Data fetched successfully:")
+            print(data)
+        else:
+            print(f"Error {response.status_code}: {response.text}")
+
+        url = "https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleApViewDME.aspx/getData"
+        payload = {
+            "caseNoReqR": f"{case_number}",
+            "incentiveAmtText": f"{amount}"
+        }
+
+        response = requests.post(url, headers=headers, cookies=cookies_dict, json=payload)
+
+        if response.ok:
+            data = response.json()
+            print(data)
+        else:
+            print(f"Error {response.status_code}: {response.text}")
+
+        # Do NOT close the browser since it’s externally managed
+
+asyncio.run(main(
+
+    case_number='CASE/PS6/HOSP22G146659/CK6983418',
+    amount=2210
+))

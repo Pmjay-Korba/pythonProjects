@@ -2,10 +2,11 @@ import os
 import sqlite3
 import datetime
 import time
-
 import openpyxl
 import pandas as pd
 from dkbssy.utils.colour_prints import ColourPrint
+import csv
+
 
 
 class ExcelMethods:
@@ -61,38 +62,76 @@ class ExcelMethods:
         t1 = time.time()
 
 
+    def excel_save_new(self, final_lol):
+        ''' [
+            "CASE/PS6/HOSP22G146659/CB7008568",
+            "2210",
+            "Ophthalmology",
+            "SICS with non-foldable IOL",
+            "2023-10-07",
+            "Lal Khan",
+            "Dr. Gopal Singh Kanwer@3.68#1^11170010478",
+            "DR.ANMOL MADHUR MINZ@3.68#1^04170140656",
+            "Dr. Aditya Siodiya@3.68#1^09530010327",
+            "Dr. Rakesh Kumar Verma@3.68#1^02530010055",
+            "RAVIKANT JATWAR@3.68#1^04170140099",
+            "AVINASH MESHRAM@3.68#1^66170010023",
+            "GHANSHYAM SINGH JATRA@15.47#2^05170011289",
+            "DR RAKESH KUMAR AGRAWAL@15.47#2^05170040053",
+            "Dr. Awadh Sahu@15.47#2^DME55173201",
+            "Dr. Deepa Janghel@15.47#2^05530010026",
+        '''
+        save_location = 'G:\\My Drive\\GdrivePC\\Hospital\\RSBY\\New\\Incentive_Entered_New\\'
+
+        # processing final lol removing the emp id
+        final_lol = [i if "^" not in i else i.split("^")[0] for i in final_lol]
+
+        # print('final_lol', final_lol)
+        case_number = final_lol[0]
+        split_case_number = case_number.split('/')
+        file_name_retrieved = split_case_number[-1]
+        file_name = f'{file_name_retrieved}.csv'
+        full_path = os.path.join(save_location, file_name)
+
+        # Save with builtin csv module
+        with open(full_path, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerows([final_lol])
+        ColourPrint.print_yellow(f'File_name - {file_name} saved')
+
+
     def sql_save(self, final_lol):
-        conn = sqlite3.connect(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\incentiveDatabase.db')
-        cur = conn.cursor()
-        current_timestamp = str(datetime.datetime.now())
-        try:
-            # Prepare the SELECT statement to check if the case number exists
-            check_statement = "SELECT 1 FROM incentive_entry_T WHERE incentive_case_number = ? LIMIT 1"
-            # Execute the SELECT statement
-            cur.execute(check_statement, (final_lol[0],))
-            result = cur.fetchone()
+            conn = sqlite3.connect(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\incentiveDatabase.db')
+            cur = conn.cursor()
+            current_timestamp = str(datetime.datetime.now())
+            try:
+                # Prepare the SELECT statement to check if the case number exists
+                check_statement = "SELECT 1 FROM incentive_entry_T WHERE incentive_case_number = ? LIMIT 1"
+                # Execute the SELECT statement
+                cur.execute(check_statement, (final_lol[0],))
+                result = cur.fetchone()
 
-            # If the case number is found, proceed to delete
-            if result:
-                # Prepare the DELETE statement
-                delete_statement = "DELETE FROM incentive_entry_T WHERE incentive_case_number = ?"
-                # Execute the DELETE statement
-                cur.execute(delete_statement, (final_lol[0],))
+                # If the case number is found, proceed to delete
+                if result:
+                    # Prepare the DELETE statement
+                    delete_statement = "DELETE FROM incentive_entry_T WHERE incentive_case_number = ?"
+                    # Execute the DELETE statement
+                    cur.execute(delete_statement, (final_lol[0],))
 
-            for inc_nam in final_lol[6:]:
-                cur.execute('''
-                        INSERT INTO incentive_entry_T (employee_name, incentive_case_number, incentive_amount, inc_categ, timestamp)
-                        VALUES (?,?,?,?,?)''',
-                            (inc_nam.split('@')[0], final_lol[0], inc_nam.split('@')[1].split('#')[0],
-                             inc_nam.split('#')[1], current_timestamp))
-            conn.commit()
-            conn.close()
-            ColourPrint.print_yellow('DataBase Saved')
-        except Exception as e:
-            ColourPrint.print_bg_red("ERROR OCCURRED, ROLLBACK")
-            print("Exception:", e)
-            conn.rollback()
-            raise FileExistsError('The Database File is corrupt. Download the latest "incentiveDatabase.db" from Google Drive backup')
+                for inc_nam in final_lol[6:]:
+                    cur.execute('''
+                            INSERT INTO incentive_entry_T (employee_name, incentive_case_number, incentive_amount, inc_categ, timestamp)
+                            VALUES (?,?,?,?,?)''',
+                                (inc_nam.split('@')[0], final_lol[0], inc_nam.split('@')[1].split('#')[0],
+                                 inc_nam.split('#')[1], current_timestamp))
+                conn.commit()
+                conn.close()
+                ColourPrint.print_yellow('DataBase Saved')
+            except Exception as e:
+                ColourPrint.print_bg_red("ERROR OCCURRED, ROLLBACK")
+                print("Exception:", e)
+                conn.rollback()
+                raise FileExistsError('The Database File is corrupt. Download the latest "incentiveDatabase.db" from Google Drive backup')
 
     def sqlite_process(self) -> list[tuple]:
         conn = sqlite3.connect(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\incentiveDatabase.db')
@@ -131,6 +170,30 @@ class ExcelMethods:
         conn.close()
         # print(results)
         return results
+
+
+    def sqlite_process_3(self):
+        db = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\incentiveDatabase_3.db"
+        conn = sqlite3.connect(db)
+        cursor = conn.cursor()
+
+        # Execute SQL query
+        cursor.execute("""
+            SELECT e.name_emp, COUNT(d.distri_amount) AS total_incentive_count, SUM(d.distri_amount) AS total_incentive
+            FROM emp_detail_table e
+            JOIN distribution_table d ON e.id_emp = d.distri_name_id
+            GROUP BY e.id_emp
+        """)
+
+        # Fetch all results: [(name1, count1, sum1), (name2, count2, sum2), ...]
+        results = cursor.fetchall()
+
+        # Close connection
+        cursor.close()
+        conn.close()
+
+        return results
+
 
     def retrieve_employee_id(self) -> dict:
         workbook_master = openpyxl.load_workbook(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\Incentive_auto2.xlsx')
@@ -175,5 +238,19 @@ def add_in_excel_for_query_stage_pending(excel_path, case_number):
     wb.save(excel_path)
     print(f"Added case number {case_number} from Excel.")
 
-# em = ExcelMethods()
-# print(em.retrieve_employee_id())
+def retrieve_emp_code_only():
+    workbook_3 = openpyxl.load_workbook(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\Incentive_auto_ver_3.xlsx')
+    sheet = workbook_3["Sheet3"]
+    e_codes = sheet.iter_cols(min_col=3, max_col=3, min_row=2, values_only=True)
+    # print(list(e_codes))
+    removed_none = [ i for i in list(e_codes)[0] if i is not None]
+    # # print(e_codes)
+    workbook_3.close()
+    return removed_none
+
+
+if __name__== "__main__":
+    # em = ExcelMethods()
+    # # print(em.retrieve_employee_id())
+    # em.get_cat_wise_inc_names()
+    print(retrieve_emp_code_only())

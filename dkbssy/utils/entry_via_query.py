@@ -1,7 +1,7 @@
 import asyncio
 import time
 
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Page
 from playwright.sync_api import sync_playwright
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -104,6 +104,8 @@ def dk_play_async(case_number):
     asyncio.run(_dk_play2(case_number))
 
 async def _dk_play2(case_number):
+    ColourPrint.print_green("Inside Async")
+
     play = await async_playwright().start()
     browser = await play.chromium.connect_over_cdp('http://localhost:9223')
     context = browser.contexts[0]
@@ -116,7 +118,6 @@ async def _dk_play2(case_number):
     await new_page.fill('#ctl00_ContentPlaceHolder1_queryText', 'REINITIATE')
     await new_page.click('#ctl00_ContentPlaceHolder1_statusSubmit')
     await new_page.click('//div[@class="swal-text"]/following-sibling::div//button')
-    ColourPrint.print_green("Inside Async")
     await new_page.close()
     await play.stop()
     ColourPrint.print_green('Async done')
@@ -154,3 +155,6 @@ async def _download_set_up(port, download_dir):
     ColourPrint.print_blue("Downloading the Incentive Initiated Cases")
     await page.close()
     await play.stop()
+
+
+

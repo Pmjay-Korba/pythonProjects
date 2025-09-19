@@ -3,9 +3,9 @@ import json
 import time
 import random
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
-
 from EHOSP.tk_ehosp.alert_boxes import error_tk_box, tk_ask_yes_no, tk_ask_input, select_ward
-from TMS_Process.process.claim_clearer import is_home_page, select_ALL_and_search
+from TMS_Process.process.claim_clearer_RF import is_home_page, select_ALL_and_search
+from TMS_Process.process.discharge_process import discharge_main
 from TMS_Process.process.tks import initial_setup_for_base_folder
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils.colour_prints import ColourPrint, message_box
@@ -29,7 +29,7 @@ def update_last_saved(CURRENT_SAVE, registration_no: str):
         json.dump({"query_clear": registration_no}, f, indent=4)
 
 async def _main(reg_multiline_str, cdp_port=9222):
-    "setting up base folder"
+    """setting up base folder"""
     BASE_FOLDER = initial_setup_for_base_folder()
 
     # print(pdf_1mb,pdf_2mb)
@@ -54,18 +54,17 @@ async def _main(reg_multiline_str, cdp_port=9222):
         page.set_default_timeout(20000)
 
 
-
-        start_index = 0
+        # start_index = 0
         multi_lined_list:list = reg_multiline_str.split()
 
-        "Commented as saving is causing problem in testing"
-        # checking if the last save is in list
-        if last_saved and last_saved in multi_lined_list:
-            start_index = multi_lined_list.index(last_saved)+1
-            print("Start index: ",start_index)
+        # "Commented as saving is causing problem in testing"
+        # # checking if the last save is in list
+        # if last_saved and last_saved in multi_lined_list:
+        #     start_index = multi_lined_list.index(last_saved)+1
+        #     print("Start index: ",start_index)
 
 
-        for registration_no in multi_lined_list[start_index:]:
+        for registration_no in multi_lined_list:
             if registration_no.strip() == "":
                 print("Blank")
                 continue
@@ -76,6 +75,14 @@ async def _main(reg_multiline_str, cdp_port=9222):
             await is_home_page(page=page)
 
             await select_ALL_and_search(page=page, registration_no=registration_no)
+
+
+
+            "testing the discharge"
+            await discharge_main(page, registration_number=registration_no)
+
+
+
 
             'Looking if queried or resolved'
             caseview = await page.locator("//li[@class='ES8GosCR9dsXoNoSy9So he8vrs1JR2h4h_PgLoHc ']").text_content()

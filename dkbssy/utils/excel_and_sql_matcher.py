@@ -150,7 +150,10 @@ class CheckerUpdate:
 
     def download_file(self, driver, download_dir):
         # Open the webpage
-        driver.get("https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleInitiatedcasesdme.aspx")
+        # driver.get("https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleInitiatedcasesdme.aspx")
+        # approver site
+        driver.get("https://dkbssy.cg.nic.in/secure/incentivemodule/approvedcasesHospitalApDME.aspx")
+
 
         # Find the download link and click it
         download_link = driver.find_element(By.XPATH,

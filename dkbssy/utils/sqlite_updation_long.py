@@ -1,6 +1,9 @@
+import datetime
+import re
 import sqlite3
 
 from EHOSP.ehospital_proper.colour_print_ehosp import ColourPrint
+# from old_dkbssy_folder.dk_manual_paid_update import case_number_text
 
 
 def list_tables():
@@ -92,8 +95,9 @@ def sql_update_bulk_optimized(success_list):
     # Step 1: Collect unique case numbers
     case_meta = {}  # case_meta= {'CASE/PS5/HOSP22G146659/CK5222125': ('Hospital Initiated', '16/07/2025 19:22:54', 'SICS with non-foldable IOL'),
     # case_number_text, status_text, procedure_text, last_updated_text, list_of_list
-    for case_number, status,  updated, proc, dist_list in success_list:
+    for case_number, status,  updated, proc, dist_list in success_list: # dict_list = [[1, '11170010478', '3.16'], [1, '66170010344', '3.16'],
         case_meta[case_number] = ( updated, proc, status )
+
 
     # print(f"case_meta=", case_meta)
     # print('lem case meta', len(case_meta))
@@ -175,3 +179,117 @@ def sql_update_bulk_optimized(success_list):
         # Final commit
         conn.commit()
         conn.close()
+
+
+def sql_update_for_3(full_list_of_list):
+    # full_list_of_list =
+    """ [
+        "CASE/PS6/HOSP22G146659/CB7008568",
+        "2210",
+        "Ophthalmology",
+        "SICS with non-foldable IOL",
+        "2023-10-07",
+        "Lal Khan",
+        "Dr. Gopal Singh Kanwer@3.68#1^11170010478",
+        "DR.ANMOL MADHUR MINZ@3.68#1^04170140656",
+        "Dr. Aditya Siodiya@3.68#1^09530010327",
+        "Dr. Rakesh Kumar Verma@3.68#1^02530010055",
+        "RAVIKANT JATWAR@3.68#1^04170140099",
+        "AVINASH MESHRAM@3.68#1^66170010023",
+        "GHANSHYAM SINGH JATRA@15.47#2^05170011289",
+        "DR RAKESH KUMAR AGRAWAL@15.47#2^05170040053",
+        "Dr. Awadh Sahu@15.47#2^DME55173201",
+        "Dr. Deepa Janghel@15.47#2^05530010026",
+        """
+
+    sql_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\incentiveDatabase_3.db"
+    conn = sqlite3.connect(sql_path)
+    cursor =conn.cursor()
+
+    current_date = datetime.date.today()
+
+    case_number_text_new = full_list_of_list[0]
+
+    # step 1: Insert case number and retrieve its id
+    cursor.execute('''
+        INSERT INTO case_num_table (case_number, date_entry)
+        SELECT ?,?
+        WHERE NOT EXISTS (SELECT 1 FROM case_num_table WHERE case_number = ?)    
+        ''', (case_number_text_new, current_date, case_number_text_new))
+
+    conn.commit()
+
+    cursor.execute('SELECT id_case_num, date_entry FROM case_num_table WHERE case_number = ?', (case_number_text_new,))
+    result = cursor.fetchone()
+    case_num_id = result[0]
+
+    # step 2 : Delete the existing case num
+    cursor.execute('DELETE FROM distribution_table WHERE distri_case_num_id = ?', (case_num_id,))
+    conn.commit()
+
+    # step 3: prepare insert new record
+    distribution_data_are = []
+
+    for individual_datas in full_list_of_list[6:]:  #"Dr. Gopal Singh Kanwer@3.68#1^11170010478",
+        parts = re.split('[@#^]', individual_datas)
+
+        name, amount, cat_num, e_code = parts  # Dr. Gopal Singh Kanwer, 3.68, 1, 11170010478
+        # ColourPrint.print_green(name, amount, cat_num, e_code)
+
+        # retrieve employee id fron employee table
+        cursor.execute('SELECT id_emp FROM emp_detail_table WHERE code_emp = ?', (e_code,))
+        emp_id_from_table = cursor.fetchone()
+
+        # INSERT THE NEW ID IN EMPLOYEE TABLE IF NOT PRESENT IN TABLE
+        if emp_id_from_table:
+            name_id = emp_id_from_table[0]  # retrieve employee code matching id instead of name, emp code is used to search. Helps in duplicate names
+            # print(f"Employee found with ID: {name_id}")
+        else:
+            # Insert new employee and get new ID
+            cursor.execute(
+                "INSERT INTO emp_detail_table (name_emp, code_emp) VALUES (?, ?)",
+                (name, e_code)
+            )
+            conn.commit()
+            name_id = cursor.lastrowid
+            ColourPrint.print_pink(f"New employee added successfully in DB with ID: {name_id}")
+
+        # prepare data for batch insertion
+        distribution_data_are.append((name_id, cat_num, case_num_id, amount))
+
+    # insert data into distribution table in a single transection
+    cursor.executemany('''
+    INSERT INTO distribution_table (distri_name_id, distri_cat_id, distri_case_num_id, distri_amount)
+    VALUES (?,?,?,?)
+    ''',distribution_data_are)
+
+    conn.commit()
+
+    # step 4 update the date entry
+    cursor.execute("""
+        UPDATE case_num_table
+        SET date_entry = ?
+        WHERE id_case_num =?
+        """, (current_date,case_num_id))
+
+    conn.commit()
+
+    conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,10 +1,8 @@
 import time
 import openpyxl
-from selenium.common import TimeoutException
-
 from EHOSP.tk_ehosp.alert_boxes import error_tk_box
 from dis_tms.main_webdriver.create_driver_modu import create_driver
-from dkbssy.dk_pages.dk_login_page import FirstPage, check_chrome_and_tab
+from dkbssy.dk_pages.dk_login_page import FirstPage, check_chrome_and_tab, load_dk_saved
 from dkbssy.dk_pages.fifth_page import FifthPage
 from dkbssy.dk_pages.fourth_page import FourthPage
 from dkbssy.dk_pages.second_page import SecondPage
@@ -15,7 +13,6 @@ from dkbssy.utils.colour_prints import ColourPrint
 from dkbssy.utils.excel_and_sql_matcher import CheckerUpdate
 from dkbssy.utils.excel_utils import ExcelMethods
 from dkbssy.utils.file_renamer import get_default_download_dir
-from dkbssy.utils.sqlite_updation_long import sql_update
 from dkbssy.utils import name_for_date_check_gmc
 from dkbssy.utils import entry_via_query
 from dkbssy.utils import excel_utils
@@ -85,8 +82,19 @@ class DkbssyIncentiveEntry:
         sec_page_obj.from_to_date_entry_use(self.from_date, self.to_date)
         '''
         sec_page_obj.async_second_page(depart_choice=depart_choice, from_date=self.from_date, to_date=self.to_date)
-        case_numbers_to_do_list = incen_percent.case_cycle(all_casear)
+        case_numbers_to_do_list = incen_percent.case_cycle(all_casear)  # GIVES CASE NUMBER LIST FOR FURTHER PROCESS
         # all case_numbers = case_numbers_to_do
+
+        # # loading the last saved
+        # last_completed = load_dk_saved()
+        # completed_index = 0
+        #
+        # if last_completed and last_completed in case_numbers_to_do_list:
+        #     completed_index = case_numbers_to_do_list.index(last_completed)
+        #     print("Completed till and Index:",last_completed, completed_index)
+        #     completed_index = completed_index + 1
+
+        # for case_number in case_numbers_to_do_list[completed_index:]:
         for case_number in case_numbers_to_do_list:
             t1 = time.time()
             ColourPrint.print_pink(str(case_numbers_to_do_list.index(case_number) + 1), case_number)
@@ -143,6 +151,7 @@ class DkbssyIncentiveEntry:
                 sec_page_obj.select_department_use(depart_choice)
                 sec_page_obj.from_to_date_entry_use(self.from_date, self.to_date)
             '''
+
             sec_page_obj.async_second_page(depart_choice=depart_choice, from_date=self.from_date, to_date=self.to_date)
 
         '''All entry complete'''

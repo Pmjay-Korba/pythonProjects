@@ -12,7 +12,7 @@ from dkbssy.utils.colour_prints import ColourPrint
 from dkbssy.utils.excel_utils import ExcelMethods
 from playwright.async_api import async_playwright, Page as Page_play
 
-from svnsssy.new_svnsssy.async_dkbssy import select_department
+# from svnsssy.new_svnsssy.async_dkbssy import select_department
 
 
 class SecondPage(Page):

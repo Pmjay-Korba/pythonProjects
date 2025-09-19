@@ -1,10 +1,13 @@
 import asyncio
 from pathlib import Path
 from openpyxl import load_workbook, Workbook
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Page, TimeoutError
 import time
+
+from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils.colour_prints import ColourPrint
-from dkbssy.utils.sqlite_updation_long import sql_update, sql_update_bulk_optimized
+from dkbssy.utils.excel_utils import retrieve_emp_code_only
+from dkbssy.utils.sqlite_updation_long import sql_update_bulk_optimized
 from dkbssy.dk_pages.fifth_page import FifthPage
 from collections import defaultdict
 
@@ -169,13 +172,91 @@ class IncentiveScraper:
         asyncio.run(self.run(case_list))
 
 
+def batch_divide(batch_count, list_to_divide):
+    batch_list = [[] for _ in range(batch_count)]
+    for i, v in enumerate(list_to_divide):
+        target_index = i % batch_count
+        # print(divided_index)
+        target_list = batch_list[target_index]
+        target_list.append(v)
+        # print(batch_list)
+    return batch_list
+
+
+class AmountScrapper:
+    excel_ver_3_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\Incentive_auto_ver_3.xlsx" # for getting the names in sheet 1 and getting the name and ecode from sheet 3
+    auto_2_excel_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\Incentive_auto2.xlsx" # updating the amount and ALSO THE NAMES AND ECODE IF NOT PRESENT IN AUTO 2 AND PRESET IN VER 3
+
+    "first matching the names nt present in auto 2"
+
+    async def scrap_emp_amount(self, page:Page, e_code):
+        await page.goto('https://dkbssy.cg.nic.in/secure/incentivemodule/IncentiveDetails_EmpCodeWiseDME.aspx')
+        await page.locator('//input[@id="ctl00_ContentPlaceHolder1_TextBox1"]').fill(str(e_code))
+        await page.locator('//input[@id="ctl00_ContentPlaceHolder1_search"]').click()
+        web_e_code = None
+
+        try:
+            await page.wait_for_selector('//*[@id="ctl00_ContentPlaceHolder1_GridView1"]/tbody/tr[2]/td[3]')
+            web_e_code = await page.locator('//a[contains(@href, "IncentiveDetails_EmpCodeWise_DetailsDME")]').text_content()
+
+        except TimeoutError:
+            ColourPrint.print_bg_red(f'The {e_code} either has Zero amount or Invalid ')
+
+        pending_count = await page.locator('//*[@id="ctl00_ContentPlaceHolder1_Label3"]').text_content()
+        pending_amount = await page.locator('//*[@id="ctl00_ContentPlaceHolder1_Label4"]').text_content()
+        paid_count =  await page.locator('//*[@id="ctl00_ContentPlaceHolder1_Label14"]').text_content()
+        paid_amount = await page.locator('//*[@id="ctl00_ContentPlaceHolder1_Label5"]').text_content()
+
+        print(web_e_code, pending_count, pending_amount, paid_count, paid_amount)
+        return web_e_code, pending_count, pending_amount, paid_count, paid_amount
+
+    async def process_one_batch_list(self, page, batch_list):
+        collect_batch_scrape = []
+        for e_code in batch_list:
+            web_e_code, pending_count, pending_amount, paid_count, paid_amount = await self.scrap_emp_amount(page, e_code)
+            collect_batch_scrape.append([web_e_code, pending_count, pending_amount, paid_count, paid_amount])
+        return collect_batch_scrape
+
+    async def main_scraper(self, set_timeout_is):
+        page_indexes = await get_desired_page_indexes_in_cdp_async_for_ASYNC(user_title_of_page='Shaheed Veer Narayan Singh Ayushman Swasthya Yojna')
+        # print(is_chrome_dev_open)
+
+        async with async_playwright() as p:
+            cdp_for_main = 9222
+            browser = await p.chromium.connect_over_cdp(f"http://localhost:{cdp_for_main}")
+            context = browser.contexts[0]
+            all_pages = context.pages
+
+            page_index = page_indexes[0]  # selecting the first index of matching page
+            page = all_pages[page_index]  # selecting the first PAGE of matching page
+
+            # l = '''N5517039 N5517035 DME55173194 DME55172713 DME55173199 05530010060 05170020039 05530010074 0000'''. split()
+            all_e_codes = retrieve_emp_code_only()
+            batch = 5
+            "creating pages"
+            pages = [await context.new_page() for _ in range(batch)]
+            for page in pages:
+                page.set_default_timeout(set_timeout_is)
+                page.set_default_navigation_timeout(set_timeout_is)
+
+            main_list_of_list = batch_divide(batch_count=batch, list_to_divide=all_e_codes)
+            print(main_list_of_list)
+            print(len(main_list_of_list))
+
+            tasks = [asyncio.create_task(self.process_one_batch_list(page, batch_list)) for page, batch_list in zip(pages, main_list_of_list)]
+
+            try:
+                result = await asyncio.gather(*tasks)
+
+            finally:
+                # await asyncio.sleep(10)
+                [await page.close() for page in pages]
+
+            print(result)
+
+
+
 
 
 if __name__ == '__main__':
-    lists = ['CASE/PS6/HOSP22G146659/CK7323887', 'CASE/PS6/HOSP22G146659/CK6469497', 'CASE/PS6/HOSP22G146659/CK6643256', 'CASE/PS6/HOSP22G146659/CK6700653', 'CASE/PS6/HOSP22G146659/CK6830053', 'CASE/PS6/HOSP22G146659/CK6892953', 'CASE/PS6/HOSP22G146659/CK6928586', 'CASE/PS6/HOSP22G146659/CK6940444', 'CASE/PS6/HOSP22G146659/CK7156278', 'CASE/PS6/HOSP22G146659/CK7111315', 'CASE/PS6/HOSP22G146659/CK7052935', 'CASE/PS6/HOSP22G146659/CK7282627', 'CASE/PS6/HOSP22G146659/CK6349892', 'CASE/PS6/HOSP22G146659/CK6459768', 'CASE/PS6/HOSP22G146659/CK6686759']
-             # 'CASE/PS6/HOSP22G146659/CK7323852', 'CASE/PS6/HOSP22G146659/CK7323811', 'CASE/PS6/HOSP22G146659/CK7323761', 'CASE/PS6/HOSP22G146659/CK7323554', 'CASE/PS6/HOSP22G146659/CK7323547', 'CASE/PS6/HOSP22G146659/CK7323040', 'CASE/PS6/HOSP22G146659/CK7322966', 'CASE/PS6/HOSP22G146659/CK7323234', 'CASE/PS6/HOSP22G146659/CK7321223', 'CASE/PS6/HOSP22G146659/CK7293957', 'CASE/PS6/HOSP22G146659/CK7297649', 'CASE/PS6/HOSP22G146659/CK7297661', 'CASE/PS6/HOSP22G146659/CK7297648', 'CASE/PS6/HOSP22G146659/CK7297614', 'CASE/PS6/HOSP22G146659/CK7297530', 'CASE/PS6/HOSP22G146659/CK7297508', 'CASE/PS6/HOSP22G146659/CK7297453', 'CASE/PS6/HOSP22G146659/CK7297325', 'CASE/PS6/HOSP22G146659/CK7297231', 'CASE/PS6/HOSP22G146659/CK7297207', 'CASE/PS6/HOSP22G146659/CK7297149', 'CASE/PS6/HOSP22G146659/CK7297128', 'CASE/PS6/HOSP22G146659/CK7297118', 'CASE/PS6/HOSP22G146659/CK7297092', 'CASE/PS6/HOSP22G146659/CK7297066', 'CASE/PS6/HOSP22G146659/CK7296996', 'CASE/PS6/HOSP22G146659/CK7296977', 'CASE/PS6/HOSP22G146659/CK7296960', 'CASE/PS6/HOSP22G146659/CK7296930', 'CASE/PS6/HOSP22G146659/CK7296908', 'CASE/PS6/HOSP22G146659/CB7297248', 'CASE/PS6/HOSP22G146659/CK7296879', 'CASE/PS6/HOSP22G146659/CK7296875', 'CASE/PS6/HOSP22G146659/CK7296846', 'CASE/PS6/HOSP22G146659/CK7296833', 'CASE/PS6/HOSP22G146659/CK7296652', 'CASE/PS6/HOSP22G146659/CK7296525', 'CASE/PS6/HOSP22G146659/CK7287629', 'CASE/PS6/HOSP22G146659/CK7292628', 'CASE/PS6/HOSP22G146659/CK7292299', 'CASE/PS6/HOSP22G146659/CK7292136', 'CASE/PS6/HOSP22G146659/CK7292090', 'CASE/PS6/HOSP22G146659/CK7292082', 'CASE/PS6/HOSP22G146659/CK7291805', 'CASE/PS6/HOSP22G146659/CK7291761', 'CASE/PS6/HOSP22G146659/CK7288942', 'CASE/PS6/HOSP22G146659/CK7288869', 'CASE/PS6/HOSP22G146659/CK7286759', 'CASE/PS6/HOSP22G146659/CB7292320']
-    '''payment done ['CASE/PS6/HOSP22G146659/CK6152981','CASE/PS6/HOSP22G146659/CK6147485']'''
-    IncentiveScraper().start(lists)
-'''To be Updated list: ['CASE/PS6/HOSP22G146659/CK7323887', 'CASE/PS6/HOSP22G146659/CK6469497', 'CASE/PS6/HOSP22G146659/CK6643256', 'CASE/PS6/HOSP22G146659/CK6700653', 'CASE/PS6/HOSP22G146659/CK6830053', 'CASE/PS6/HOSP22G146659/CK6892953', 'CASE/PS6/HOSP22G146659/CK6928586', 'CASE/PS6/HOSP22G146659/CK6940444', 'CASE/PS6/HOSP22G146659/CK7156278', 'CASE/PS6/HOSP22G146659/CK7111315', 'CASE/PS6/HOSP22G146659/CK7052935', 'CASE/PS6/HOSP22G146659/CK7282627', 'CASE/PS6/HOSP22G146659/CK6349892', 'CASE/PS6/HOSP22G146659/CK6459768', 'CASE/PS6/HOSP22G146659/CK6686759']
-'''
-
+    asyncio.run(AmountScrapper().main_scraper(30000))

@@ -1,7 +1,7 @@
 import asyncio
 import time
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
-from TMS_Process.process.claim_clearer import is_home_page, select_ALL_and_search
+from TMS_Process.process.claim_clearer_RF import is_home_page, select_ALL_and_search
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from TMS_new.async_tms_new import select_ors
 from dkbssy.utils.colour_prints import ColourPrint
@@ -57,7 +57,7 @@ async def claim_submitter(page):
     await page.locator("//button[normalize-space()='SUBMIT CLAIM']").click()
     # time.sleep(2)
     await page.locator("//button[normalize-space()='YES']").click()
-    # time.sleep(2)
+    await asyncio.sleep(5)
 
 
 

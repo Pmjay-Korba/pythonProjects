@@ -464,7 +464,8 @@ def check_discharged_or_not(context, token: str, ipd_no):
         "userdepartmentarray": ""
     }
 
-    response = context.request.get(url, headers=headers, timeout=120_000)
+    # response = context.request.get(url, headers=headers, timeout=120_000)
+    response = context.request.fetch(url, method="GET", headers=headers, timeout=120_000)
     if response.ok:
         patient_data = response.json()
         print("=======>", patient_data)
@@ -991,6 +992,97 @@ def verify_user(user_id):
         ColourPrint.print_yellow(message_box('Please wait ...'))
 
 
+def apply_throttle_context(context, mode: str | None = None):
+    """Apply or reset network throttling profile at the context level (affects all pages)."""
+    client = context.new_cdp_session(context.pages[0] if context.pages else context.new_page())
+    client.send("Network.enable")
+
+    if mode is None or mode == "none":
+        client.send("Network.emulateNetworkConditions", {
+            "offline": False,
+            "latency": 0,
+            "downloadThroughput": -1,
+            "uploadThroughput": -1,
+        })
+        print("[INFO] No throttling (reset to normal).")
+        return
+
+    NETWORK_PRESETS = {
+        "2g": {
+            "latency": 1200,  # 1.2 sec delay per request
+            "download": 15 * 1024 / 8,  # ~15 KB/s (extremely slow)
+            "upload": 7 * 1024 / 8,  # ~7 KB/s
+        },
+        "slow3g": {"latency": 400, "download": 50 * 1024 / 8, "upload": 20 * 1024 / 8},
+        "fast3g": {"latency": 150, "download": 1.6 * 1024 * 1024 / 8, "upload": 750 * 1024 / 8},
+        "4g": {"latency": 70, "download": 4 * 1024 * 1024 / 8, "upload": 3 * 1024 * 1024 / 8},
+        "wifi": {"latency": 30, "download": 30 * 1024 * 1024 / 8, "upload": 15 * 1024 * 1024 / 8},
+    }
+
+    if mode not in NETWORK_PRESETS:
+        raise ValueError(f"Invalid mode: {mode}. Choose from {list(NETWORK_PRESETS)} or 'none'.")
+
+    profile = NETWORK_PRESETS[mode]
+    client.send("Network.emulateNetworkConditions", {
+        "offline": False,
+        "latency": profile["latency"],
+        "downloadThroughput": profile["download"],
+        "uploadThroughput": profile["upload"],
+    })
+
+    print(f"[INFO] Applied throttling: {mode.upper()} "
+          f"(latency={profile['latency']}ms, "
+          f"down={profile['download']*8/1024/1024:.2f}Mbps, "
+          f"up={profile['upload']*8/1024/1024:.2f}Mbps)")
+
+
+def apply_throttle(page, mode: str | None = None):
+    """Apply or reset network throttling profile using CDP.
+       mode=None or "none" → reset to normal network.
+    """
+    client = page.context.new_cdp_session(page)
+    client.send("Network.enable")
+
+    if mode is None or mode == "none":
+        # Reset to normal (no throttling)
+        client.send("Network.emulateNetworkConditions", {
+            "offline": False,
+            "latency": 0,
+            "downloadThroughput": -1,
+            "uploadThroughput": -1,
+        })
+        print("[INFO] No throttling (reset to normal).")
+        return
+
+    NETWORK_PRESETS = {
+        "2g": {
+            "latency": 1200,  # 1.2 sec delay per request
+            "download": 15 * 1024 / 8,  # ~15 KB/s (extremely slow)
+            "upload": 7 * 1024 / 8,  # ~7 KB/s
+        },
+        "slow3g": {"latency": 400, "download": 50 * 1024 / 8, "upload": 20 * 1024 / 8},
+        "fast3g": {"latency": 150, "download": 1.6 * 1024 * 1024 / 8, "upload": 750 * 1024 / 8},
+        "4g": {"latency": 70, "download": 4 * 1024 * 1024 / 8, "upload": 3 * 1024 * 1024 / 8},
+        "wifi": {"latency": 30, "download": 30 * 1024 * 1024 / 8, "upload": 15 * 1024 * 1024 / 8},
+    }
+
+    if mode not in NETWORK_PRESETS:
+        raise ValueError(f"Invalid mode: {mode}. Choose from {list(NETWORK_PRESETS)} or 'none'.")
+
+    profile = NETWORK_PRESETS[mode]
+    client.send("Network.emulateNetworkConditions", {
+        "offline": False,
+        "latency": profile["latency"],
+        "downloadThroughput": profile["download"],
+        "uploadThroughput": profile["upload"],
+    })
+
+    print(f"[INFO] Applied throttling: {mode.upper()} "
+          f"(latency={profile['latency']}ms, "
+          f"down={profile['download']*8/1024/1024:.2f}Mbps, "
+          f"up={profile['upload']*8/1024/1024:.2f}Mbps)")
+
+
 def main():
     # check for chromeDev Opened and the desired page present return the indexed of page
     pages_indicis = get_desired_page_indexes_in_cdp_async_for_SYNC('NextGen eHospital')  # print = [0,2,..]
@@ -1004,7 +1096,8 @@ def main():
         context.set_default_navigation_timeout(timeout=120_000)
 
         # Set default timeout for all actions in this context
-        # context.set_default_timeout(120_000)
+        context.set_default_timeout(120_000)
+        # apply_throttle_context(context=context, mode='2g')
 
         # Manually paste your fresh Bearer token here
         print(get_fresh_token_and_userid(context=context))

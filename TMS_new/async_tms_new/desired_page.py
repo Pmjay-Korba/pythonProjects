@@ -13,7 +13,12 @@ async def _get_desired_page_indexes_in_cdp_async(user_title_of_page, cdp_port):
     :param cdp_port: Port no. {9222}
     :return: list of index of page opened
     """
-    title_of_error = "ChromeDev Error"
+    title_of_error = "BrowserDev Error"
+    browser_type_is = "BrowserDev"
+    if int(cdp_port) == 9223:
+        browser_type_is = "EdgeDev"
+    elif int(cdp_port) == 9222:
+        browser_type_is = "ChromeDev"
     try:
         async with async_playwright() as p:
             browser = await p.chromium.connect_over_cdp(f'http://localhost:{cdp_port}')
@@ -22,11 +27,11 @@ async def _get_desired_page_indexes_in_cdp_async(user_title_of_page, cdp_port):
                 error_tk_box(error_title=title_of_error, error_message='No browser tab is opened')
                 raise
             pages = context.pages
-            print(len(pages))
+            print("Count of Pages", len(pages))
 
             # adding the same page indexes
             same_page_opened = []
-            ColourPrint.print_blue("User defined_page:", user_title_of_page)
+            ColourPrint.print_blue(f"User defined page for {browser_type_is}:", user_title_of_page)
             for idx, page in enumerate(pages):
                 # print()
                 try:
@@ -41,7 +46,7 @@ async def _get_desired_page_indexes_in_cdp_async(user_title_of_page, cdp_port):
 
             # raising error box if no title
             if not same_page_opened:
-                err_msg = f'No tab opened with page title: "{user_title_of_page}"'
+                err_msg = f'No tab opened with page title: "{user_title_of_page}" in {browser_type_is}. Try after Opening and Login'
                 error_tk_box(error_title=title_of_error, error_message=err_msg)
                 raise NameError(err_msg)
 
@@ -52,7 +57,7 @@ async def _get_desired_page_indexes_in_cdp_async(user_title_of_page, cdp_port):
 
     except PlaywrightError as e:
         if  "ECONNREFUSED" in str(e):
-            err_msg = 'ChromeDev is not running.\nOpen ChromeDev and login in nextgen than retry'
+            err_msg = f'{browser_type_is} is not running.\n\nOpen {browser_type_is} and login in {user_title_of_page} than retry'
             error_tk_box(error_title=title_of_error, error_message=err_msg)
             raise ConnectionError(err_msg)
 

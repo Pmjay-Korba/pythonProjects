@@ -1,4 +1,6 @@
+import json
 import time
+from pathlib import Path
 
 import requests
 from selenium.webdriver.common.by import By
@@ -45,3 +47,19 @@ def check_chrome_and_tab(target_title):
     except requests.exceptions.RequestException:
         print( "❌ EDGE browser with remote debugging is NOT running.")
         return False
+
+
+def load_dk_saved(path=r"G:\Other computers\My Computer\pythonProject\TMS_new\async_tms_new\download\dk_last_done.json"):
+    if not Path(path).exists():
+        raise FileNotFoundError(f"No file {path}")
+    # load_file = None
+    with open (path, "r", encoding="utf-8") as f:
+        j = json.load(f)
+        return j["dk_last_saved"]
+
+def save_dk_json(saving_is, path=r"G:\Other computers\My Computer\pythonProject\TMS_new\async_tms_new\download\dk_last_done.json"):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(saving_is, f, indent=2)
+
+if __name__ == "__main__":
+    print(load_dk_saved())

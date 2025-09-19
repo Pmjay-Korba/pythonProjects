@@ -2,10 +2,13 @@ import asyncio
 import json
 import time
 import random
+import os
+import subprocess
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
 from EHOSP.tk_ehosp.alert_boxes import error_tk_box, tk_ask_yes_no, tk_ask_input, select_ward
 from TMS_Process.process.claim_clearer_RF import is_home_page, select_ALL_and_search
 from TMS_Process.process.discharge_process import discharge_main
+from TMS_Process.process.enhancement import enhancement, enhancement_type_2
 from TMS_Process.process.tks import initial_setup_for_base_folder
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils.colour_prints import ColourPrint, message_box
@@ -77,13 +80,6 @@ async def _main(reg_multiline_str, cdp_port=9222):
             await select_ALL_and_search(page=page, registration_no=registration_no)
 
 
-
-            "testing the discharge"
-            await discharge_main(page, registration_number=registration_no)
-
-
-
-
             'Looking if queried or resolved'
             caseview = await page.locator("//li[@class='ES8GosCR9dsXoNoSy9So he8vrs1JR2h4h_PgLoHc ']").text_content()
             if 'caseview' in caseview.strip().lower() :
@@ -105,8 +101,38 @@ async def _main(reg_multiline_str, cdp_port=9222):
                 delete_pdf(pdf_2mb)
 
             if caseview.strip().lower().startswith('under'):
+
+                'checking for the discharge button presence'
+                await page.wait_for_selector("//button[normalize-space()='Initiate Resubmission']")
+                'checking for the presence of Initiate button'
+                parent_of_discharge_node_texts = await page.locator("//button[normalize-space()='Initiate Resubmission']/parent::div").text_content()
+                print(parent_of_discharge_node_texts)
+
+                print('Initiate Enhancement'.lower() in parent_of_discharge_node_texts.lower())
+
                 pdf_1mb = _create_custom_pdf(registration_no=registration_no)
-                await enhancement(page=page, pdf_1=pdf_1mb)
+
+                # Open Explorer at that folder
+                subprocess.Popen(f'explorer "{os.path.dirname(pdf_1mb)}"')
+
+
+                if 'Initiate Enhancement'.lower() in parent_of_discharge_node_texts.lower():
+
+                    "clicking finance to se number of days enhancement done"
+                    await page.locator("//button[normalize-space()='Finance']").click()
+
+                    days_enhanced_str = await page.locator("//th[normalize-space()='Quantity']//ancestor::table/tbody//tr/td[6]").all_text_contents()
+                    days_enhanced_int = [int(i) for i in days_enhanced_str]
+                    total_enhanced = sum(days_enhanced_int)
+                    answer = tk_ask_yes_no(
+                        question=f'The total enhanced already taken is: {total_enhanced} days.\nDo You want to take more enhancement.\n\nIf clicked "NO" it will proceed to next case')  # returns True False
+                    if answer:
+                        # await enhancement(page=page, pdf_1=pdf_1mb)
+                        await enhancement_type_2(page=page, pdf_1mb=pdf_1mb)
+
+                "testing the discharge"
+                await discharge_main(page=page, pdf_1mb=pdf_1mb)
+
                 delete_pdf(pdf_1mb)
 
             # else:
@@ -167,13 +193,15 @@ async def claim_query_clearer(page, pdf_1mb, pdf_2mb, registration_no=None):
 
     await page.locator("//button[normalize-space()='YES']").click()
 
+
 async  def pre_auth_query_clearer(page, pdf_1mb, pdf_2mb=None):
+    await page.locator("//h4[text()='Treatment']").click()
     await page.locator("//div[contains(text(),'Investigations')]/parent::div/following-sibling::h2/button").click()
     await page.locator("//button[normalize-space()='Add Other Documents']").click()
     # await page.locator("//input[@id='otherInvest']").fill(remark)  # instead Null is autofill and uses as selector
-    await page.set_input_files("//input[@type='file']", pdf_1mb)
     await page.locator("//button[contains(@data-toggle,'collapse')][normalize-space()='ADD']").click()
     await page.wait_for_selector("//p[normalize-space()='Null']")
+    await page.set_input_files("//input[@type='file']", pdf_1mb)
     await page.locator("//button[normalize-space()='VALIDATE & PREVIEW']").click()
     await page.locator("//button[normalize-space()='INITIATE RESUBMISSION']").click()
     await page.locator("//button[normalize-space()='YES']").click()
@@ -194,81 +222,6 @@ async def pre_auth_filler(page:Page):
     await page.locator('(//input[@id="Pallor"]/following-sibling::span[@class="X822VFjKSr1jqv5N60Yx"])[2]').click()
     await page.locator('(//input[@id="Malnutrition"]/following-sibling::span[@class="X822VFjKSr1jqv5N60Yx"])[2]').click()
     await page.locator('(//input[@id="OedemaInFeet"]/following-sibling::span[@class="X822VFjKSr1jqv5N60Yx"])[2]').click()
-
-async def enhancement(page:Page, pdf_1):
-    # verify_under_treatment =
-    await page.locator("//button[normalize-space()='Initiate Enhancement']").click()
-    await page.locator("//button[normalize-space()='YES']").click()
-    depart = await page.locator("//th[normalize-space()='Speciality']/ancestor::table/tbody//tr[1]/td[2]").text_content()
-
-    # show more
-    await page.locator("//th[normalize-space()='Speciality']/ancestor::table/tbody//tr[1]/td[3]//span").click()
-    diagnosis = await page.locator("//th[normalize-space()='Speciality']/ancestor::table/tbody//tr[1]/td[3]/p").text_content()
-    if diagnosis.endswith("Show Less"):
-        diagnosis = diagnosis.removesuffix("Show Less")
-
-    print(depart, diagnosis)
-
-    await page.locator("(//label[normalize-space()='Speciality:']/ancestor::div[normalize-space(@class)='row']//input[@type='text' and contains(@id,'react-select')])[1]").fill(depart)
-    # await page.locator("//input[@id='react-select-36-input']").fill(depart)
-    await page.keyboard.press(key='Enter')
-    # await asyncio.sleep(1)
-
-    " added this here so that option populates gets time"
-    days_enhanced_str = await page.locator("//th[normalize-space()='No. of Days/Units']//ancestor::table/tbody//tr/td[5]").all_text_contents()
-    days_enhanced_int = [int(i) for i in days_enhanced_str]
-    total_enhanced = sum(days_enhanced_int)
-    answer = tk_ask_yes_no(
-        question=f'The total enhanced already taken is: {total_enhanced} days.\nDo You want to take more enhancement.\n\nIf clicked "NO" it will proceed to next case')  # returns True False
-    if answer:
-        "if yes diagnosis is filled"
-        dd = page.locator("(//label[normalize-space()='Speciality:']/ancestor::div[normalize-space(@class)='row']//input[@type='text' and contains(@id,'react-select')])[2]")
-        await dd.wait_for(state="visible")
-        await dd.fill(diagnosis)
-        await page.keyboard.press(key='Enter')
-
-        "asking the ward type"
-        ward_type = select_ward()
-
-        "selecting the type of ward"
-        ward_stay =page.locator("(//label[normalize-space()='Speciality:']/ancestor::div[normalize-space(@class)='row']//input[@type='text' and contains(@id,'react-select')])[3]")
-        await ward_stay.wait_for(state="visible")
-        await ward_stay.fill(ward_type)
-        await page.keyboard.press(key='Enter')
-
-        user_input_days = tk_ask_input(question="How many days you want to take enhancement.\nType in below for desired days.\nPRESSING Enter without typing number of days\nwill automatically take 3 days", default="3")
-        if user_input_days is None:
-            error_tk_box(error_message='User Cancelled', error_title='Error')
-            raise ValueError('User cancelled the user input prompt')
-
-        await page.locator("//input[@id='noofdays']").fill(user_input_days)
-
-
-        reason_enhance = random.choice(['Additional facts were diagnosed during treatment.',
-                          'Details submitted during pre-auth was not correct.',
-                          'Others',
-                          'Treatment plan changed during hospitalization.',
-                          'Treatment plan is optimized for better outcome.'
-                          ])
-
-        reason_web = page.locator("(//label[normalize-space()='Speciality:']/ancestor::div[normalize-space(@class)='row']//input[@type='text' and contains(@id,'react-select')])[4]")
-        await reason_web.wait_for(state="visible")
-        await reason_web.fill(reason_enhance)
-        await page.keyboard.press(key='Enter')
-
-        await page.set_input_files("//input[@type='file']", pdf_1)
-        await page.locator("//div[div[label[normalize-space()='Enhancement Reason:']]]//img[@class='m9FzljqXbDJyFhzambbf']").click()
-        await page.locator("//div[contains(text(),'Investigations')]/parent::div//parent::div//button[@type]").click()
-        await page.locator("//button[normalize-space()='Add Bed Side Photo']").click()
-        await page.set_input_files("//label[normalize-space()='Upload Attachment']/following-sibling::div//input", pdf_1)
-        await page.locator("//button[contains(@data-toggle,'collapse')][normalize-space()='ADD']").click()
-
-        await page.locator("//button[normalize-space()='VALIDATE & PREVIEW']").click()
-        await page.locator("//button[normalize-space()='SUBMIT ENHANCEMENT']").click()
-        await page.locator("//label[normalize-space()='Are you sure want to submit?']/ancestor::div[@class='modal-content']//button[normalize-space()='YES']").click()
-
-
-
 
     #
 

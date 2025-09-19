@@ -2,7 +2,8 @@ import asyncio
 import sys
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
 
-async def discharge_main(page:Page,registration_number):
+async def discharge_main(page:Page, pdf_1mb):
+    # await page.locator("//button[normalize-space()='BACK']").click() # to get the discharge page as it was inside the enhancement
     await page.get_by_text('Ready For Discharge').click()
 
     await page.locator("//input[@type='text' and @role='combobox']").fill('Normal Discharge')
@@ -12,7 +13,6 @@ async def discharge_main(page:Page,registration_number):
     await page.keyboard.press('Enter')
 
     await page.locator("//label[text()='Yes']//span").click()
-
 
 
     'injecting the button'
@@ -27,21 +27,39 @@ async def discharge_main(page:Page,registration_number):
 
     'here sice compiling the pages to pdf the above mangalkamna patra will be downloaded'
 
-    await page.set_input_files('//label[@for="DischargeSummary"]//parent::fieldset//input', r"D:\Down\download.pdf")
-    await page.set_input_files('//label[@for="AfterDischargePhoto"]//parent::fieldset//input', r"D:\Down\download.pdf")
-    await page.set_input_files('//label[@for="Feedback Form"]//parent::fieldset//input', r"D:\Down\download.pdf")
-    await page.set_input_files('//label[@for="Upload Medical Slip"]//parent::fieldset//input', r"D:\Down\download.pdf")
+    await page.set_input_files('//label[@for="DischargeSummary"]//parent::fieldset//input', pdf_1mb)
+    await page.set_input_files('//label[@for="AfterDischargePhoto"]//parent::fieldset//input', pdf_1mb)
+    await page.set_input_files('//label[@for="Feedback Form"]//parent::fieldset//input', pdf_1mb)
+    await page.set_input_files('//label[@for="Upload Medical Slip"]//parent::fieldset//input', pdf_1mb)
+    await page.locator("//button[normalize-space()='SAVE']").click()
+    await page.wait_for_selector(" //span[normalize-space()='Discharge Information saved successfully.']")
+    await page.locator("//button[normalize-space()='DISCHARGE']").click()
+    await page.locator("//button[normalize-space()='YES']").click()
+    await page.locator("//label[text()='Proceed without Aadhar Authentication']/span").click()
+    await page.set_input_files('//label[@for="MedicalSuperintendentDeclarationFormDuringDischarge"]/following-sibling::div//input', pdf_1mb)
 
+    max_retries = 3
+    for attempt in range(max_retries):
+        await page.locator("//button[normalize-space()='SAVE']").click()
+        try:
+            await page.wait_for_selector(
+                "//span[normalize-space()='Discharge Consent saved successfully.']",
+                timeout=5000
+            )
+            print("Saved successfully ✅")
+            break
+        except:
+            print(f"Attempt {attempt + 1} retrying...")
+
+    else:
+        raise Exception("Save failed after multiple attempts ❌")
+
+    await page.locator("//button[normalize-space()='DISCHARGE' and not(@disabled)]").click()
     await asyncio.sleep(5)
 
 
+    # sys.exit()
 
-
-
-    sys.exit()
-
-import asyncio
-from playwright.async_api import Page
 
 async def inject_continue_button(page: Page, button_text: str = "Continue", position: str = "bottom-right"):
     pos_styles = {

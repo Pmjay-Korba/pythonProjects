@@ -44,7 +44,7 @@ async def discharge_main(page:Page, pdf_1mb):
         try:
             await page.wait_for_selector(
                 "//span[normalize-space()='Discharge Consent saved successfully.']",
-                timeout=5000
+                timeout=2500
             )
             print("Saved successfully ✅")
             break

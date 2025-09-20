@@ -131,13 +131,16 @@ async def _main(reg_multiline_str, cdp_port=9222):
                     days_enhanced_int = [int(i) for i in days_enhanced_str]
                     total_enhanced = sum(days_enhanced_int)
                     answer = tk_ask_yes_no(
-                        question=f'The total enhanced already taken is: {total_enhanced} days.\nDo You want to take more enhancement.\n\nIf clicked "NO" it will proceed to next case')  # returns True False
+                        question=f'The total enhanced already taken is: {total_enhanced} days.\nDo You want to take more enhancement.\n\nIf clicked "NO" it will proceed.')  # returns True False
                     if answer:
                         # await enhancement(page=page, pdf_1=pdf_1mb)
                         await enhancement_type_2(page=page, pdf_1mb=pdf_1mb)
+                    else:  # for the no further enhancement required
+                        await discharge_main(page=page, pdf_1mb=pdf_1mb)
 
-                "testing the discharge"
-                await discharge_main(page=page, pdf_1mb=pdf_1mb)
+                else:  # for those whom the enhancement is not required
+                    "testing the discharge"
+                    await discharge_main(page=page, pdf_1mb=pdf_1mb)
 
                 delete_pdf(pdf_1mb)
 
@@ -151,7 +154,7 @@ async def _main(reg_multiline_str, cdp_port=9222):
             # ✅ update progress after each successful run
             update_last_saved(registration_no=registration_no, CURRENT_SAVE=CURRENT_SAVE)
 
-            await asyncio.sleep(5)
+            # await asyncio.sleep(5)
 
 def _create_files_pdfs(registration_no):
     ColourPrint.print_yellow(message_box('Please wait. Scanning drives...'))

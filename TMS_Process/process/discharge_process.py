@@ -42,7 +42,7 @@ async def discharge_main(page:Page, pdf_1mb):
     await page.set_input_files('//label[@for="AfterDischargePhoto"]//parent::fieldset//input', pdf_1mb)
     await page.set_input_files('//label[@for="Feedback Form"]//parent::fieldset//input', pdf_1mb)
     await page.set_input_files('//label[@for="Upload Medical Slip"]//parent::fieldset//input', pdf_1mb)
-    await page.locator("//button[normalize-space()='SAVE']").click()
+    await page.locator("//button[normalize-space()='SAVE' and not(@disabled)]").click()
     await page.wait_for_selector(" //span[normalize-space()='Discharge Information saved successfully.']")
     await page.locator("//button[normalize-space()='DISCHARGE']").click()
     await page.locator("//button[normalize-space()='YES']").click()
@@ -55,7 +55,7 @@ async def discharge_main(page:Page, pdf_1mb):
         try:
             await page.wait_for_selector(
                 "//span[normalize-space()='Discharge Consent saved successfully.']",
-                timeout=2500
+                timeout=1000
             )
             print("Saved successfully ✅")
             break

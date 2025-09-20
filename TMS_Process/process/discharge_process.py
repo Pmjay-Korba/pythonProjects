@@ -16,8 +16,15 @@ async def discharge_main(page:Page, pdf_1mb):
     await page.locator("//div[@id='DischargeStage']//input[@type='text']").fill('After Surgery/Treatment')
     await page.keyboard.press('Enter')
 
-    await page.locator("//label[text()='Yes']//span").click()
-
+    "retries logic for getting the hospital bill upload"
+    yes_radio = page.locator("//label[text()='Yes']//span")
+    upload_label = page.locator("//label[@for='Upload Medical Slip']")
+    await yes_radio.check()
+    try:
+        await expect(upload_label).to_be_visible(timeout=5000)
+    except TimeoutError:
+        await page.evaluate("el => el.click()", await yes_radio.element_handle())
+        await expect(upload_label).to_be_visible(timeout=5000)
 
     'injecting the button'
     print("PRESS CONTINUE AFTER FILLING BOTH DATES")

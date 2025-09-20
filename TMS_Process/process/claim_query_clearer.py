@@ -54,7 +54,7 @@ async def _main(reg_multiline_str, cdp_port=9222):
         page_index = pages_indexes[0]  # selecting the first index of matching page
 
         page = all_pages[page_index]  # selecting the first PAGE of matching page
-        page.set_default_timeout(20000)
+        page.set_default_timeout(120000)
 
 
         # start_index = 0
@@ -110,10 +110,16 @@ async def _main(reg_multiline_str, cdp_port=9222):
 
                 print('Initiate Enhancement'.lower() in parent_of_discharge_node_texts.lower())
 
-                pdf_1mb = _create_custom_pdf(registration_no=registration_no)
-
+                text_file_search_path = search_file_all_drives_base(filename=registration_no)
                 # Open Explorer at that folder
-                subprocess.Popen(f'explorer "{os.path.dirname(pdf_1mb)}"')
+                subprocess.Popen(f'explorer "{os.path.dirname(text_file_search_path[0])}"')
+
+                'blocking so that files can be checked and if necessary discharge can be manually downloaded from nextgen. So this download will be included in pdf creation'
+                'Right now yes or no both proceed the same'
+                answer_about_files_complete = tk_ask_yes_no(question='Check the folder has all necessary files.\nPress "YES" to continue')
+                # if answer_about_files_complete
+
+                pdf_1mb = _create_custom_pdf(registration_no=registration_no)
 
 
                 if 'Initiate Enhancement'.lower() in parent_of_discharge_node_texts.lower():

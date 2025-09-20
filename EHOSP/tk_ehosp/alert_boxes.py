@@ -111,10 +111,79 @@ def select_ward(default="Routine Ward"):
 
     return selection
 
+
+
+def discharge_type_selector_tk(default="'Normal Discharge'"):
+    """
+    Shows a centered dialog with selectable ward options.
+    Returns the selected option as a string, or None if cancelled.
+    """
+    def on_submit(event=None):
+        """Submit the selection. Accept default if empty or Enter pressed."""
+        nonlocal selection
+        selection = var.get() or default
+        root.destroy()
+
+    selection = None
+
+    # Create main window
+    root = tk.Tk()
+    root.title("Ward Selection")
+    root.attributes("-topmost", True)
+
+    # Options
+    options = [
+        "Live Discharge",
+        "Normal Discharge",
+        "LAMA",
+        "DAMA",
+        "Death"
+    ]
+
+    # Tkinter variable to hold selection
+    var = tk.StringVar(value=default)  # default selection
+
+    # Title label
+    tk.Label(root, text="Select Discharge Type:", font=("Arial", 14, "bold")).pack(pady=10)
+
+    # Radio buttons
+    for option in options:
+        tk.Radiobutton(
+            root, text=option, variable=var, value=option,
+            font=("Arial", 12), anchor="w", padx=20, pady=5
+        ).pack(fill="x", padx=20, pady=2)
+
+    # Submit button taller
+    submit_btn = tk.Button(root, text="Submit", font=("Arial", 12, "bold"),
+                           command=on_submit, height=2)
+    submit_btn.pack(pady=15, ipadx=10)  # ipadx for horizontal padding inside button
+
+    # Bind Enter key to submit
+    root.bind("<Return>", on_submit)
+
+    # Update geometry based on content and center the window
+    root.update_idletasks()
+    width = max(root.winfo_reqwidth(), 400)  # width based on content, min 400
+    height = root.winfo_reqheight()
+    x = (root.winfo_screenwidth() // 2) - (width // 2)
+    y = (root.winfo_screenheight() // 2) - (height // 2)
+    root.geometry(f"{width}x{height}+{x}+{y}")
+
+    # Force focus on the window and Submit button
+    root.lift()             # Bring window to top
+    root.focus_force()      # Focus on this window
+    submit_btn.focus_set()  # Optional: focus on submit button
+
+    # Start main loop
+    root.mainloop()
+
+    return selection
+
+
 # Example usage
 if __name__ == "__main__":
-    user_input_days = tk_ask_input(
-        question="How many days you want to take enhancement.\nType in below for desired days.\nPRESSING Enter without typing number of days\nwill automatically take 3 days",
-        default="3")
-    print(user_input_days)
-
+    # user_input_days = tk_ask_input(
+    #     question="How many days you want to take enhancement.\nType in below for desired days.\nPRESSING Enter without typing number of days\nwill automatically take 3 days",
+    #     default="3")
+    # print(user_input_days)
+    print(discharge_type_selector_tk())

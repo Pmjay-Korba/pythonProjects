@@ -2,11 +2,15 @@ import asyncio
 import sys
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
 
+from EHOSP.tk_ehosp.alert_boxes import discharge_type_selector_tk
+
+
 async def discharge_main(page:Page, pdf_1mb):
     # await page.locator("//button[normalize-space()='BACK']").click() # to get the discharge page as it was inside the enhancement
     await page.get_by_text('Ready For Discharge').click()
-
-    await page.locator("//input[@type='text' and @role='combobox']").fill('Normal Discharge')
+    "Ask discharge type tk"
+    discharge_type = discharge_type_selector_tk()
+    await page.locator("//input[@type='text' and @role='combobox']").fill(discharge_type)
     await page.keyboard.press('Enter')
     # The async with page.expect_download() → waits for the download to begin.
     await page.locator("//div[@id='DischargeStage']//input[@type='text']").fill('After Surgery/Treatment')

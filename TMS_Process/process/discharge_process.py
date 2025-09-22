@@ -5,7 +5,7 @@ from playwright.async_api import async_playwright, Page, TimeoutError, expect
 from EHOSP.tk_ehosp.alert_boxes import discharge_type_selector_tk
 
 
-async def discharge_main(page:Page, pdf_1mb):
+async def discharge_main(page:Page, pdfs_list):
     # await page.locator("//button[normalize-space()='BACK']").click() # to get the discharge page as it was inside the enhancement
     await page.get_by_text('Ready For Discharge').click()
     "Ask discharge type tk"
@@ -38,16 +38,17 @@ async def discharge_main(page:Page, pdf_1mb):
 
     'here sice compiling the pages to pdf the above mangalkamna patra will be downloaded'
 
-    await page.set_input_files('//label[@for="DischargeSummary"]//parent::fieldset//input', pdf_1mb)
-    await page.set_input_files('//label[@for="AfterDischargePhoto"]//parent::fieldset//input', pdf_1mb)
-    await page.set_input_files('//label[@for="Feedback Form"]//parent::fieldset//input', pdf_1mb)
-    await page.set_input_files('//label[@for="Upload Medical Slip"]//parent::fieldset//input', pdf_1mb)
+    pdf_1, pdf_2, pdf_3, pdf_4 = pdfs_list
+    await page.set_input_files('//label[@for="DischargeSummary"]//parent::fieldset//input', pdf_1)
+    await page.set_input_files('//label[@for="AfterDischargePhoto"]//parent::fieldset//input', pdf_2)
+    await page.set_input_files('//label[@for="Feedback Form"]//parent::fieldset//input', pdf_3)
+    await page.set_input_files('//label[@for="Upload Medical Slip"]//parent::fieldset//input', pdf_4)
     await page.locator("//button[normalize-space()='SAVE' and not(@disabled)]").click()
     await page.wait_for_selector(" //span[normalize-space()='Discharge Information saved successfully.']")
     await page.locator("//button[normalize-space()='DISCHARGE']").click()
     await page.locator("//button[normalize-space()='YES']").click()
     await page.locator("//label[text()='Proceed without Aadhar Authentication']/span").click()
-    await page.set_input_files('//label[@for="MedicalSuperintendentDeclarationFormDuringDischarge"]/following-sibling::div//input', pdf_1mb)
+    await page.set_input_files('//label[@for="MedicalSuperintendentDeclarationFormDuringDischarge"]/following-sibling::div//input', pdf_2)
 
     max_retries = 3
     for attempt in range(max_retries):
@@ -72,7 +73,7 @@ async def discharge_main(page:Page, pdf_1mb):
     # sys.exit()
 
 
-async def inject_continue_button(page: Page, button_text: str = "Continue", position: str = "bottom-right"):
+async def inject_continue_button(page: Page, button_text: str = "Fill Discharge & Surgery Date than\nClick Here", position: str = "bottom-right"):
     pos_styles = {
         "bottom-right": {"right": "20px", "bottom": "20px"},
         "top-right": {"right": "20px", "top": "20px"},

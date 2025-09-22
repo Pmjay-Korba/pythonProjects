@@ -76,11 +76,12 @@ async def enhancement(page:Page, pdf_1):
         await page.locator("//button[normalize-space()='SUBMIT ENHANCEMENT']").click()
         await page.locator("//label[normalize-space()='Are you sure want to submit?']/ancestor::div[@class='modal-content']//button[normalize-space()='YES']").click()
 
-async def enhancement_type_2(page:Page, pdf_1mb):
+async def enhancement_type_2(page:Page, pdfs_list):
     await page.locator("//button[normalize-space()='Initiate Enhancement']").click()
     await page.locator("//button[normalize-space()='YES']").click()
     await page.locator('(//img[@data-tip="you can change Stratification and no.of days"])[last()]').click()
 
+    pdf_1, pdf_2, pdf_3 = pdfs_list
     # "added this here so that option populates gets time"
     # days_enhanced_str = await page.locator(
     #     "//th[normalize-space()='No. of Days/Units']//ancestor::table/tbody//tr/td[5]").all_text_contents()
@@ -122,10 +123,21 @@ async def enhancement_type_2(page:Page, pdf_1mb):
 
     # click investigation
     await page.locator("//div[normalize-space()='Investigations']/following-sibling::h2/button").click()
+
+    await page.locator("//button[normalize-space()='Add Other Documents']").click()
+    await page.locator("//label[@for='otherInvest']/parent::div/parent::div/following-sibling::div/button[normalize-space()='ADD']").click()
+    await page.set_input_files("(//p[contains(text(),'Null')]/parent::td/following-sibling::td//input)[last()]", pdf_1)
+
+
     await page.locator("//button[normalize-space()='Add Bed Side Photo']").click()
     await page.locator("//label[@for='otherInvest']/parent::div/parent::div/following-sibling::div/button[normalize-space()='ADD']").click()
+    await page.set_input_files("//p[contains(text(),'Bed Side Photo')]/parent::td/following-sibling::td//input", pdf_2)
 
-    await page.set_input_files("//p[contains(text(),'Bed Side Photo')]/parent::td/following-sibling::td//input", pdf_1mb)
+
+    await page.locator("//button[normalize-space()='Add Other Documents']").click()
+    await page.locator("//label[@for='otherInvest']/parent::div/parent::div/following-sibling::div/button[normalize-space()='ADD']").click()
+    await page.set_input_files("(//p[contains(text(),'Null')]/parent::td/following-sibling::td//input)[last()]", pdf_3)
+
 
     await page.locator("//button[normalize-space()='VALIDATE & PREVIEW']").click()
     await page.locator("//button[normalize-space()='SUBMIT ENHANCEMENT']").click()

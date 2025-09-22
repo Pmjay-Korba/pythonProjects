@@ -162,7 +162,7 @@ def delete_pdf(pdf_path):
         print(f"⚠️ File does not exist: {pdf_path}")
 
 
-def custom_size_pdf_from_txt_list( txt_file_paths, max_size_mb=4.95 ):
+def custom_size_pdf_from_txt_list( txt_file_paths, max_size_mb=0.95 ):
     if not txt_file_paths:
         print("No TXT files provided")
         err_msg = f'The folder does not contain the text file. Please check'

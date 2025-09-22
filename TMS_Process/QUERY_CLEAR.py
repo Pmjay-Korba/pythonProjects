@@ -8,15 +8,6 @@ from process.claim_query_clearer import main;main("""
 
 
 
-
-
-1011305459
-
-
-1008288272
-1008289230
-1008287762
-1008280410
 1008400791
 1008401370
 1008401975
@@ -80,7 +71,7 @@ from process.claim_query_clearer import main;main("""
 1007673483
 1007736164
 
-
+1013508504
 
 """) ###################### This is included line do not delete
 

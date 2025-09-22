@@ -119,3 +119,152 @@ def inject_department(page: Page, button_names: list):
         }
     """, button_names)
 
+async def modal_info_button(page, message: str):
+    await page.evaluate(
+        """(customMessage) => {
+            return new Promise((resolve) => {
+                // Modal overlay (blocks background)
+                const modalBackground = document.createElement('div');
+                modalBackground.style.position = 'fixed';
+                modalBackground.style.top = '0';
+                modalBackground.style.left = '0';
+                modalBackground.style.width = '100%';
+                modalBackground.style.height = '100%';
+                modalBackground.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                modalBackground.style.display = 'flex';
+                modalBackground.style.alignItems = 'center';
+                modalBackground.style.justifyContent = 'center';
+                modalBackground.style.zIndex = '10000';
+
+                // Modal box
+                const modalContent = document.createElement('div');
+                modalContent.style.backgroundColor = 'white';
+                modalContent.style.padding = '20px';
+                modalContent.style.borderRadius = '10px';
+                modalContent.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.1)';
+                modalContent.style.textAlign = 'center';
+                modalContent.style.maxWidth = '400px';
+
+                // Add message
+                const messageDiv = document.createElement('div');
+                messageDiv.innerHTML = customMessage;
+                messageDiv.style.marginBottom = '20px';
+                modalContent.appendChild(messageDiv);
+
+                // Add CONTINUE button
+                const continueButton = document.createElement('button');
+                continueButton.innerHTML = '<b>CONTINUE</b>';
+                continueButton.style.padding = '10px 20px';
+                continueButton.style.backgroundColor = '#266ab5';
+                continueButton.style.color = 'white';
+                continueButton.style.border = 'none';
+                continueButton.style.borderRadius = '8px';
+                continueButton.style.cursor = 'pointer';
+                continueButton.style.width = '120px';
+                continueButton.onclick = () => {
+                    modalBackground.remove();
+                    resolve("CONTINUE");
+                };
+
+                modalContent.appendChild(continueButton);
+                modalBackground.appendChild(modalContent);
+                document.body.appendChild(modalBackground);
+            });
+        }""",
+        message
+    )
+
+import os, subprocess
+
+async def modal_folder_button(page, message: str, file_path: str = None):
+    # Expose a Python binding so JS can call it
+    async def open_folder_binding(source, fpath):
+        folder = os.path.dirname(fpath)
+        subprocess.Popen(f'explorer "{folder}"')
+        return True
+
+    try:
+        await page.expose_binding("openFolderFromPython", open_folder_binding)
+    except Exception as e:
+        if "has been already registered" not in str(e):
+            raise
+
+    # Inject the modal
+    await page.evaluate(
+        """({customMessage, filePath}) => {
+            return new Promise((resolve) => {
+                const modalBackground = document.createElement('div');
+                modalBackground.style.position = 'fixed';
+                modalBackground.style.top = '0';
+                modalBackground.style.left = '0';
+                modalBackground.style.width = '100%';
+                modalBackground.style.height = '100%';
+                modalBackground.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                modalBackground.style.display = 'flex';
+                modalBackground.style.alignItems = 'center';
+                modalBackground.style.justifyContent = 'center';
+                modalBackground.style.zIndex = '10000';
+
+                const modalContent = document.createElement('div');
+                modalContent.style.backgroundColor = 'white';
+                modalContent.style.padding = '20px';
+                modalContent.style.borderRadius = '10px';
+                modalContent.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.1)';
+                modalContent.style.textAlign = 'center';
+                modalContent.style.maxWidth = '400px';
+
+                const messageDiv = document.createElement('div');
+                messageDiv.innerHTML = customMessage;
+                messageDiv.style.marginBottom = '20px';
+                modalContent.appendChild(messageDiv);
+
+                const buttonsContainer = document.createElement('div');
+                buttonsContainer.style.display = 'flex';
+                buttonsContainer.style.justifyContent = 'center';
+                buttonsContainer.style.gap = '15px';
+
+                // CONTINUE button
+                const continueButton = document.createElement('button');
+                continueButton.innerHTML = '<b>CONTINUE</b>';
+                continueButton.style.padding = '10px 20px';
+                continueButton.style.backgroundColor = '#266ab5';
+                continueButton.style.color = 'white';
+                continueButton.style.border = 'none';
+                continueButton.style.borderRadius = '8px';
+                continueButton.style.cursor = 'pointer';
+                continueButton.style.width = '120px';
+                continueButton.onclick = () => {
+                    modalBackground.remove();
+                    resolve("CONTINUE");
+                };
+
+                // OPEN FOLDER button
+                const openButton = document.createElement('button');
+                openButton.innerHTML = '<b>OPEN FOLDER</b>';
+                openButton.style.padding = '10px 20px';
+                openButton.style.backgroundColor = '#15db06';
+                openButton.style.color = 'white';
+                openButton.style.border = 'none';
+                openButton.style.borderRadius = '8px';
+                openButton.style.cursor = 'pointer';
+                openButton.style.width = '150px';
+                openButton.onclick = () => {
+                    if (filePath) {
+                        window.openFolderFromPython(filePath);
+                    }
+                };
+
+                buttonsContainer.appendChild(openButton);
+                buttonsContainer.appendChild(continueButton);
+                modalContent.appendChild(buttonsContainer);
+                modalBackground.appendChild(modalContent);
+                document.body.appendChild(modalBackground);
+            });
+        }""",
+        {"customMessage": message, "filePath": file_path}
+    )
+
+
+
+if __name__ =="__main__":
+    modal_folder_button()

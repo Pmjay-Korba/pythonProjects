@@ -196,7 +196,13 @@ async def _main(reg_multiline_str, cdp_port=9222):
             # await asyncio.sleep(5)
 
 async def display_modal_show_folder(page, registration_no):
-    text_file_search_path = search_file_all_drives_base(filename=registration_no)[0]
+    try:
+        text_file_search_path = search_file_all_drives_base(filename=registration_no)[0]
+    except IndexError as e:
+        err_msg = f'The txt file is not present in the folder for registration no {registration_no}.'
+        error_tk_box(error_message=err_msg)
+        raise IndexError(err_msg)
+
     await modal_folder_button(page=page,
                               message="Check the images are complete in folder. <br>To see images click 'Open Folder'<br>After checking, click 'Continue'.",
                               file_path=text_file_search_path

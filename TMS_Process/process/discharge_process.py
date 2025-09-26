@@ -60,7 +60,7 @@ async def discharge_main(page:Page, pdfs_list):
             )
             print("Saved successfully ✅")
             break
-        except:
+        except TimeoutError:
             print(f"Attempt {attempt + 1} retrying...")
 
     else:

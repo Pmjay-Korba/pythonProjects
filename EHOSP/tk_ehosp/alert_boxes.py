@@ -1,5 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog
+import asyncio
+import subprocess
+import ctypes
+import win32gui
+
 
 def error_tk_box(error_message: object, error_title: object = "ERROR") -> None:
     root = tk.Tk()
@@ -113,7 +118,7 @@ def select_ward(default="Routine Ward"):
 
 
 
-def discharge_type_selector_tk(default="'Normal Discharge'"):
+def discharge_type_selector_tk(default="Normal Discharge"):
     """
     Shows a centered dialog with selectable ward options.
     Returns the selected option as a string, or None if cancelled.
@@ -186,4 +191,6 @@ if __name__ == "__main__":
     #     question="How many days you want to take enhancement.\nType in below for desired days.\nPRESSING Enter without typing number of days\nwill automatically take 3 days",
     #     default="3")
     # print(user_input_days)
-    print(discharge_type_selector_tk())
+    # print(discharge_type_selector_tk())
+    # select_ward()
+    open_folder_topmost(r"I:\Other computers\MSW 2025\IPD2025 MSW\MONTH OF SEPTEMBER\11.09.2025\JAY PAL\WhatsApp Image 2025-09-11 at 13.14.39_b84d8db9.jpg")

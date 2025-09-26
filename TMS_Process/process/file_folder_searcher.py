@@ -167,20 +167,117 @@ def search_file_all_drives_OLDS(filename: str, max_workers: int = 6, refresh_cac
     return cache.get(filename, [])
 
 
+def resolve_with_drive_fallback(abs_path: str) -> str | None:
+    """Return abs_path if exists, else try same path on other drives (in-memory only)."""
+    p = Path(abs_path)
+    if p.exists():
+        return str(p)
+
+    drive, rest = os.path.splitdrive(abs_path)
+    if not rest:
+        return None
+
+    for d in "CDEFGHIJKLMNOPQRSTUVWXYZ":
+        candidate = f"{d}:{rest}"
+        if Path(candidate).exists():
+            return str(Path(candidate))
+    return None
+
+# def search_file_all_drives_base(filename: str, max_workers: int = 6, refresh_cache: bool = False, log_every: int = 500) -> list[str]:
+#     """
+#     Search only BASE_FOLDER and Google Drives for numeric .txt files.
+#     Shows progress every `log_every` folders visited.
+#     """
+#     filename = normalize_filename(f"{filename}.txt")
+#
+#     # 🔹 Load existing cache
+#     cache = load_cache()
+#
+#     if not refresh_cache and filename in cache:
+#         print(f"[CACHE] Found {len(cache[filename])} cached matches for {filename}")
+#         return cache[filename]
+#
+#     start_time = time.perf_counter()
+#     found_all = {}
+#
+#     # Always include BASE_FOLDER
+#     base_folder = initial_setup_for_base_folder()
+#     scan_targets = [Path(base_folder)]
+#
+#     # Add all Google Drive mounts
+#     for d in get_google_drives():
+#         scan_targets.append(Path(f"{d}:/"))
+#
+#     print(f"[INFO] Scanning only {len(scan_targets)} locations (BASE + Google Drives)")
+#
+#     def scan_folder_for_txt(folder: Path) -> dict[str, list[str]]:
+#         found = {}
+#         count = 0
+#         for root, _, files in os.walk(folder):
+#             count += 1
+#             if count % log_every == 0:
+#                 print(f"[SCAN] Still scanning {folder} ... visited {count} folders")
+#
+#             for f in files:
+#                 if f.endswith(".txt") and f[:-4].isdigit():  # numeric .txt
+#                     key = normalize_filename(f)
+#                     found.setdefault(key, []).append(str(Path(root) / f))
+#
+#         print(f"[DONE] Finished {folder} ({len(found)} unique files, {count} folders visited)")
+#         return found
+#
+#     # 🔹 Parallel scanning
+#     with ThreadPoolExecutor(max_workers=min(len(scan_targets), max_workers)) as executor:
+#         futures = {executor.submit(scan_folder_for_txt, folder): folder for folder in scan_targets}
+#         for future in as_completed(futures):
+#             try:
+#                 sub_found = future.result()
+#                 for k, v in sub_found.items():
+#                     found_all.setdefault(k, []).extend(v)
+#             except Exception as e:
+#                 print(f"[ERROR] Folder scan failed in {futures[future]}: {e}")
+#
+#     elapsed = time.perf_counter() - start_time
+#     print(f"[SEARCH] Indexed {len(found_all)} numeric .txt files (took {elapsed:.2f} sec)")
+#
+#     # 🔹 Update cache
+#     cache.update(found_all)
+#     save_cache(cache)
+#
+#     # return cache.get(filename, [])
+#
+#     'ADDED THIS FOR SWAPPING THE DRIVE LETTERS'
+#     raw_results = cache.get(filename, [])
+#     return [r for r in (resolve_with_drive_fallback(p) for p in raw_results) if r]
 
 def search_file_all_drives_base(filename: str, max_workers: int = 6, refresh_cache: bool = False, log_every: int = 500) -> list[str]:
     """
     Search only BASE_FOLDER and Google Drives for numeric .txt files.
     Shows progress every `log_every` folders visited.
+    Returns paths resolved in memory if drive letter changed.
+    Prints both cached and resolved paths.
     """
     filename = normalize_filename(f"{filename}.txt")
 
     # 🔹 Load existing cache
     cache = load_cache()
 
+    # 🔹 Use cached paths if available, resolve drive letters in memory
     if not refresh_cache and filename in cache:
-        print(f"[CACHE] Found {len(cache[filename])} cached matches for {filename}")
-        return cache[filename]
+        raw_results = cache.get(filename, [])
+        print(f"[CACHE] Found {len(raw_results)} cached matches for {filename}")
+        print("[CACHE] Cached paths:")
+        for p in raw_results:
+            print(f"  {p}")
+        # Resolve in memory
+        resolved_results = []
+        print("[MEMORY] Resolved paths:")
+        for p in raw_results:
+            resolved = resolve_with_drive_fallback(p)
+            print(f"  {resolved}")
+            if resolved:
+                resolved_results.append(resolved)
+        return resolved_results
 
     start_time = time.perf_counter()
     found_all = {}
@@ -229,7 +326,20 @@ def search_file_all_drives_base(filename: str, max_workers: int = 6, refresh_cac
     cache.update(found_all)
     save_cache(cache)
 
-    return cache.get(filename, [])
+    # 🔹 Return resolved paths
+    raw_results = cache.get(filename, [])
+    print("[CACHE] Cached paths (after scan):")
+    for p in raw_results:
+        print(f"  {p}")
+    resolved_results = []
+    print("[MEMORY] Resolved paths (after scan):")
+    for p in raw_results:
+        resolved = resolve_with_drive_fallback(p)
+        print(f"  {resolved}")
+        if resolved:
+            resolved_results.append(resolved)
+    return resolved_results
+
 
 
 # ------------------- MAIN -------------------

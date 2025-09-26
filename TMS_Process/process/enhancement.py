@@ -79,7 +79,7 @@ async def enhancement(page:Page, pdf_1):
 async def enhancement_type_2(page:Page, pdfs_list):
     await page.locator("//button[normalize-space()='Initiate Enhancement']").click()
     await page.locator("//button[normalize-space()='YES']").click()
-    await page.locator('(//img[@data-tip="you can change Stratification and no.of days"])[last()]').click()
+    await page.locator('(//tr[not(.//p[contains(., "High end radiol")])]//img[@data-tip="you can change Stratification and no.of days"] )[last()]').click()  # skipping the enhancing the radiology
 
     pdf_1, pdf_2, pdf_3 = pdfs_list
     # "added this here so that option populates gets time"

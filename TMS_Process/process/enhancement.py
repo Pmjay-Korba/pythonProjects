@@ -93,7 +93,7 @@ async def enhancement_type_2(page:Page, pdfs_list):
     # select ward type
     ward_type = select_ward()
 
-    ward_stay = page.locator("//th[normalize-space()='Speciality']/ancestor::table//tbody/tr[last()]/td[4]//input[@tabindex]")
+    ward_stay = page.locator("//div[contains(@class,'formgroup')]/ancestor::tr/td[4]//input[@tabindex]")
     await ward_stay.wait_for(state="visible")
     await ward_stay.fill(ward_type)
     await page.keyboard.press('Enter')
@@ -105,7 +105,7 @@ async def enhancement_type_2(page:Page, pdfs_list):
         error_tk_box(error_message='User Cancelled', error_title='Error')
         raise ValueError('User cancelled the user input prompt')
 
-    await page.locator("//th[normalize-space()='Speciality']/ancestor::table//tbody/tr[last()]/td[5]//input[@placeholder='Type here']").fill(user_input_days)
+    await page.locator("//div[contains(@class,'formgroup')]/ancestor::tr/td[5]//input[@placeholder='Type here']").fill(user_input_days)
     reason_enhance = random.choice(['Additional facts were diagnosed during treatment.',
                                     'Details submitted during pre-auth was not correct.',
                                     'Others',
@@ -113,16 +113,16 @@ async def enhancement_type_2(page:Page, pdfs_list):
                                     'Treatment plan is optimized for better outcome.'
                                     ])
 
-    reason_web = page.locator("//th[normalize-space()='Speciality']/ancestor::table//tbody/tr[last()]/td[10]//input[@tabindex='0']")
+    reason_web = page.locator("//div[contains(@class,'formgroup')]/ancestor::tr/td[10]//input[@tabindex='0']")
     await reason_web.wait_for(state="visible")
     await reason_web.fill(reason_enhance)
     await page.keyboard.press(key='Enter')
 
     # click save icon
-    await page.locator("//th[normalize-space()='Speciality']/ancestor::table//tbody/tr[last()]/td[13]//img[2]").click()
+    await page.locator("//div[contains(@class,'formgroup')]/ancestor::tr/td[13]//img[2]").click()
 
     # click investigation
-    await page.locator("//div[normalize-space()='Investigations']/following-sibling::h2/button").click()
+    await page.locator("//div[normalize-space()='Investigations']/following-sibling::h2/button | //div[contains(text(),'Investigations')]/parent::div/following-sibling::h2/button").click()
 
     await page.locator("//button[normalize-space()='Add Other Documents']").click()
     await page.locator("//label[@for='otherInvest']/parent::div/parent::div/following-sibling::div/button[normalize-space()='ADD']").click()

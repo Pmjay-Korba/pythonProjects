@@ -35,7 +35,7 @@ def update_last_saved(CURRENT_SAVE, registration_no: str):
     with open(CURRENT_SAVE, "w", encoding="utf-8") as f:
         json.dump({"query_clear": registration_no}, f, indent=4)
 
-async def _main(reg_multiline_str, cdp_port=9222):
+async def _main(reg_multiline_str, set_timeout_is, cdp_port=9222):
     """setting up base folder"""
     BASE_FOLDER = initial_setup_for_base_folder()
 
@@ -58,7 +58,7 @@ async def _main(reg_multiline_str, cdp_port=9222):
         page_index = pages_indexes[0]  # selecting the first index of matching page
 
         page = all_pages[page_index]  # selecting the first PAGE of matching page
-        page.set_default_timeout(120000)
+        page.set_default_timeout(set_timeout_is)
 
 
         # start_index = 0
@@ -361,8 +361,8 @@ async def pre_auth_filler(page:Page):
 
 
 
-def main(reg_multiline_str):
-    asyncio.run(_main(reg_multiline_str))
+def main(reg_multiline_str, set_timeout_is):
+    asyncio.run(_main(reg_multiline_str, set_timeout_is=set_timeout_is))
 
 
 

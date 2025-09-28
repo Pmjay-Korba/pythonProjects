@@ -195,3 +195,5 @@ def department_wise_extract_for_discharge_2025(excel_path=r'G:\My Drive\GdrivePC
     pending_discharge_wb.save(excel_path)
     pending_discharge_wb.close()
 
+if __name__ == "__main__":
+    department_wise_extract_for_discharge_2025()

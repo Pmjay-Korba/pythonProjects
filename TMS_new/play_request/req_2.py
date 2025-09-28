@@ -55,37 +55,6 @@ class AsyncTms:
             # downloading excel directly
             await spreadsheet_download_directly(download_directory_folder=self.DOWNLOAD_DIR,
                                                 sheet_id='1vhjV0rcODJ4lGYJBHENMnHFvqHgK25dQRt9SVpr_9N4')
-            # headers = {
-            #     "accept": "application/json",
-            #     "accept-encoding": "gzip, deflate, br, zstd",
-            #     "accept-language": "en-US,en;q=0.9",
-            #     "access-control-allow-origin": "https://provider.nha.gov.in/",
-            #     "appname": "TMS-Provider",
-            #     "authorization": f"Bearer {session_storage['idmToken']}",
-            #     "uauthorization": f"Bearer {session_storage['token']}",
-            #     "cache-control": "no-cache",
-            #     "cid": "0",
-            #     "content-type": "application/json; charset=UTF-8",
-            #     "hid": "3649",
-            #     "origin": "https://provider.nha.gov.in",
-            #     "pid": "1935",
-            #     "pragma": "no-cache",
-            #     "priority": "u=1, i",
-            #     "referer": "https://provider.nha.gov.in/",
-            #     "scode": "22",
-            #     "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
-            #     "sec-ch-ua-mobile": "?0",
-            #     "sec-ch-ua-platform": '"Windows"',
-            #     "sec-fetch-dest": "empty",
-            #     "sec-fetch-mode": "cors",
-            #     "sec-fetch-site": "same-site",
-            #     "tid": session_storage["transactionid"],
-            #     "uid": session_storage["userid"],
-            #     "uname": session_storage["username"],
-            #     "urole": session_storage["userRole"],
-            #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-            #     "ustate": "1935"
-            # }
 
             heads = req_1.Headers(session_storage=session_storage,context=context, sec_ch_ua=sec_ch_ua, user_agent=user_agent)
             headers = heads.header_for_tms_1

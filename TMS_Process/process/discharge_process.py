@@ -40,15 +40,20 @@ async def discharge_main(page:Page, pdfs_list):
 
     pdf_1, pdf_2, pdf_3, pdf_4 = pdfs_list
     await page.set_input_files('//label[@for="DischargeSummary"]//parent::fieldset//input', pdf_1)
+    await asyncio.sleep(1)
     await page.set_input_files('//label[@for="AfterDischargePhoto"]//parent::fieldset//input', pdf_2)
+    await asyncio.sleep(1)
     await page.set_input_files('//label[@for="Feedback Form"]//parent::fieldset//input', pdf_3)
+    await asyncio.sleep(1)
     await page.set_input_files('//label[@for="Upload Medical Slip"]//parent::fieldset//input', pdf_4)
+    await asyncio.sleep(1)
     await page.locator("//button[normalize-space()='SAVE' and not(@disabled)]").click()
     await page.wait_for_selector(" //span[normalize-space()='Discharge Information saved successfully.']")
     await page.locator("//button[normalize-space()='DISCHARGE']").click()
     await page.locator("//button[normalize-space()='YES']").click()
     await page.locator("//label[text()='Proceed without Aadhar Authentication']/span").click()
     await page.set_input_files('//label[@for="MedicalSuperintendentDeclarationFormDuringDischarge"]/following-sibling::div//input', pdf_2)
+    await asyncio.sleep(1)
 
     max_retries = 3
     for attempt in range(max_retries):

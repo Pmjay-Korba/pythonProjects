@@ -84,7 +84,8 @@ def generate_pdfs_from_txt_list(txt_file_paths):
 
     # ---- Split into ratio 1:5 ----
     n = len(all_images)
-    split_index = n // 6  # 1:5 ratio → first 1/6th, remaining 5/6th
+    # split_index = n // 6  # 1:5 ratio → first 1/6th, remaining 5/6th
+    split_index = max(1, n // 6)  # ensure at least 1 image if possible
     part1_imgs = all_images[:split_index]
     part2_imgs = all_images[split_index:]
 
@@ -98,24 +99,31 @@ def generate_pdfs_from_txt_list(txt_file_paths):
     safe_name = re.sub(r'\s+', ' ', safe_name)
 
     # ---- Part 1: strictly < 0.95 MB ----
-    part1_pdf = os.path.join(first_folder, f"{safe_name}1.pdf")
+    # part1_pdf = os.path.join(first_folder, f"{safe_name}1.pdf")
+    part1_pdf = None
+    part2_pdf = None
+
     if part1_imgs:
-        ok1 = save_pdf(part1_imgs, part1_pdf, max_size=int(0.95 * 1024 * 1024))  # 0.95 MB
-        if ok1:
-            size1 = os.path.getsize(part1_pdf) / (1024 * 1024)
-            print(f"✅ {part1_pdf} ({size1:.2f} MB)")
+        pdf1_path = os.path.join(first_folder, f"{safe_name}1.pdf")
+        ok1 = save_pdf(part1_imgs, pdf1_path, max_size=int(0.95 * 1024 * 1024))  # 0.95 MB
+        if ok1 and os.path.exists(pdf1_path):
+            size1 = os.path.getsize(pdf1_path) / (1024 * 1024)
+            print(f"✅ {pdf1_path} ({size1:.2f} MB)")
+            part1_pdf = pdf1_path
         else:
-            print(f"⚠️ {part1_pdf} could not be compressed under 0.95 MB")
+            print(f"⚠️ {pdf1_path} could not be created under 0.95 MB")
 
     # ---- Part 2: strictly < 4.95 MB ----
-    part2_pdf = os.path.join(first_folder, f"{safe_name}2.pdf")
+    # part2_pdf = os.path.join(first_folder, f"{safe_name}2.pdf")
     if part2_imgs:
-        ok2 = save_pdf(part2_imgs, part2_pdf, max_size=int(4.95 * 1024 * 1024))  # 4.95 MB
-        if ok2:
-            size2 = os.path.getsize(part2_pdf) / (1024 * 1024)
-            print(f"✅ {part2_pdf} ({size2:.2f} MB)")
+        pdf2_path = os.path.join(first_folder, f"{safe_name}2.pdf")
+        ok2 = save_pdf(part2_imgs, pdf2_path, max_size=int(4.95 * 1024 * 1024))  # 4.95 MB
+        if ok2 and os.path.exists(pdf2_path):
+            size2 = os.path.getsize(pdf2_path) / (1024 * 1024)
+            print(f"✅ {pdf2_path} ({size2:.2f} MB)")
+            part2_pdf = pdf2_path
         else:
-            print(f"⚠️ {part2_pdf} could not be compressed under 4.95 MB")
+            print(f"⚠️ {pdf2_path} could not be created under 4.95 MB")
     else:
         part2_pdf = None
 

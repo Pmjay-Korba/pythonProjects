@@ -127,16 +127,19 @@ async def enhancement_type_2(page:Page, pdfs_list):
     await page.locator("//button[normalize-space()='Add Other Documents']").click()
     await page.locator("//label[@for='otherInvest']/parent::div/parent::div/following-sibling::div/button[normalize-space()='ADD']").click()
     await page.set_input_files("(//p[contains(text(),'Null')]/parent::td/following-sibling::td//input)[last()]", pdf_1)
+    await asyncio.sleep(1)
 
 
     await page.locator("//button[normalize-space()='Add Bed Side Photo']").click()
     await page.locator("//label[@for='otherInvest']/parent::div/parent::div/following-sibling::div/button[normalize-space()='ADD']").click()
     await page.set_input_files("//p[contains(text(),'Bed Side Photo')]/parent::td/following-sibling::td//input", pdf_2)
+    await asyncio.sleep(1)
 
 
     await page.locator("//button[normalize-space()='Add Other Documents']").click()
     await page.locator("//label[@for='otherInvest']/parent::div/parent::div/following-sibling::div/button[normalize-space()='ADD']").click()
     await page.set_input_files("(//p[contains(text(),'Null')]/parent::td/following-sibling::td//input)[last()]", pdf_3)
+    await asyncio.sleep(1)
 
 
     await page.locator("//button[normalize-space()='VALIDATE & PREVIEW']").click()

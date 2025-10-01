@@ -1,12 +1,9 @@
-from process.claim_query_clearer import main;main("""
+from process.claim_query_clearer import main;main(set_timeout_is=120000, reg_multiline_str="""
 
 
+1014062332
 
 
-
-
-1006946548
-1007523677
 
 
 

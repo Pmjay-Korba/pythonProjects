@@ -285,9 +285,12 @@ async def claim_query_clearer(page, pdf_1mb, pdf_2mb, registration_no=None):
     "searching the file"
 
     await page.set_input_files("//input[@id='SupportingDoc2']", pdf_2mb)
+    await asyncio.sleep(1)
 
     if pdf_1mb:
+        # print(';pdf1mb' , pdf_1mb)
         await page.set_input_files('//*[@id="SupportingDoc1"]', pdf_1mb)
+        await asyncio.sleep(1)
 
     await page.locator("//input[@id='Remarks']").fill(remark)
 
@@ -335,6 +338,7 @@ async  def pre_auth_query_clearer(page, pdf_list):
         await page.locator("//button[contains(@data-toggle,'collapse')][normalize-space()='ADD']").click()
         await page.wait_for_selector("(//p[normalize-space()='Null'])[last()]")
         await page.set_input_files("//input[@type='file']", pdf)
+        await asyncio.sleep(1)
     await page.locator("//button[normalize-space()='VALIDATE & PREVIEW']").click()
     await page.locator("//button[normalize-space()='INITIATE RESUBMISSION']").click()
     await page.locator("//button[normalize-space()='YES']").click()

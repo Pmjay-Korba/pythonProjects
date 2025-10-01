@@ -1,5 +1,3 @@
-import os
-import time
 from io import BytesIO
 from PIL import Image
 import os
@@ -7,6 +5,7 @@ import random
 import re
 import img2pdf
 from pathlib import Path
+import concurrent.futures, tempfile
 
 
 from EHOSP.ehospital_proper.colour_print_ehosp import ColourPrint
@@ -269,6 +268,92 @@ def save_pdf_backup(txt_file_paths, max_size_mb=0.95):
     size_mb = os.path.getsize(output_pdf) / (1024 * 1024)
     print(f"✅ Backup PDF saved: {output_pdf} ({size_mb:.2f} MB, limit {max_size_mb:.2f} MB)")
     return output_pdf
+
+
+def preprocess_and_save_temp(image_path, max_dim=1500):
+    """
+    Preprocess image (resize, convert to RGB) and save to a temporary JPEG.
+    Returns path to the temp file.
+    """
+    try:
+        img = Image.open(image_path)
+        img = img.convert("RGB")
+
+        if max(img.size) > max_dim:
+            img.thumbnail((max_dim, max_dim))
+
+        # Save to a temporary file
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".jpg")
+        os.close(tmp_fd)  # only needed path
+        img.save(tmp_path, "JPEG", quality=90)
+        return tmp_path
+    except Exception as e:
+        print(f"⚠️ Could not process {image_path}: {e}")
+        return None
+
+
+def generate_pdfs_for_claim_query(txt_file_paths):
+    if not txt_file_paths:
+        print("No TXT files provided")
+        err_msg = f'The folder does not contain the text file. Please check'
+        error_tk_box(error_title="File Not Found", error_message=err_msg)
+        raise FileNotFoundError(err_msg)
+
+    all_images = []
+
+    for txt_path in txt_file_paths:
+        folder = os.path.dirname(txt_path)
+        images = find_images_in_folder(folder)
+        all_images.extend(images)
+
+    if not all_images:
+        print("No images found in any folder")
+        return []
+
+    random.shuffle(all_images)
+
+    # Preprocess and save images to temp JPEGs in parallel
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        processed = list(executor.map(preprocess_and_save_temp, all_images))
+
+    all_images = [p for p in processed if p]
+
+    # Split into ratio 1:5
+    n = len(all_images)
+    split_index = max(1, n // 6)
+    part1_imgs = all_images[:split_index]
+    part2_imgs = all_images[split_index:]
+
+    first_folder = os.path.dirname(txt_file_paths[0])
+    parent_name = os.path.basename(first_folder)
+
+    safe_name = re.sub(r'[^A-Za-z0-9]+', ' ', parent_name).strip()
+    safe_name = re.sub(r'\s+', ' ', safe_name)
+
+    part1_pdf, part2_pdf = None, None
+
+    if part1_imgs:
+        pdf1_path = os.path.join(first_folder, f"{safe_name}1.pdf")
+        ok1 = save_pdf(part1_imgs, pdf1_path, max_size=int(0.95 * 1024 * 1024))
+        if ok1 and os.path.exists(pdf1_path):
+            size1 = os.path.getsize(pdf1_path) / (1024 * 1024)
+            print(f"✅ {pdf1_path} ({size1:.2f} MB)")
+            part1_pdf = pdf1_path
+        else:
+            print(f"⚠️ {pdf1_path} could not be created under 0.95 MB")
+
+    if part2_imgs:
+        pdf2_path = os.path.join(first_folder, f"{safe_name}2.pdf")
+        ok2 = save_pdf(part2_imgs, pdf2_path, max_size=int(4.95 * 1024 * 1024))
+        if ok2 and os.path.exists(pdf2_path):
+            size2 = os.path.getsize(pdf2_path) / (1024 * 1024)
+            print(f"✅ {pdf2_path} ({size2:.2f} MB)")
+            part2_pdf = pdf2_path
+        else:
+            print(f"⚠️ {pdf2_path} could not be created under 4.95 MB")
+
+    return part1_pdf, part2_pdf
+
 
 # if __name__ == "__main__":
     # txt_path = r"C:\Users\HP\Desktop\test\1011550154.txt"

@@ -17,8 +17,7 @@ from TMS_Process.process.tks import initial_setup_for_base_folder
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils.colour_prints import ColourPrint, message_box
 from TMS_Process.process.file_folder_searcher import search_file_all_drives_base, ProjectPaths
-from TMS_Process.process.pdf_creator import generate_pdfs_from_txt_list, delete_pdf, custom_size_pdf_from_txt_list, \
-    save_pdf_backup
+from TMS_Process.process.pdf_creator import delete_pdf, generate_pdfs_for_claim_query, save_pdf_backup
 
 
 def load_last_saved(CURRENT_SAVE):
@@ -216,7 +215,7 @@ def _create_files_pdfs(registration_no):
         err_msg = f'The txt file is not present in the folder for registration no {registration_no}.'
         error_tk_box(error_message=err_msg)
         raise FileNotFoundError(err_msg)
-    pdf_1mb, pdf_2mb = generate_pdfs_from_txt_list(text_file_path)
+    pdf_1mb, pdf_2mb = generate_pdfs_for_claim_query(text_file_path)
     return pdf_1mb, pdf_2mb
 
 def _create_custom_pdf_rough(registration_no):
@@ -277,8 +276,12 @@ async def click_first_until_second_present(page, first_locator, second_locator, 
         return False
 
 async def claim_query_clearer(page, pdf_1mb, pdf_2mb, registration_no=None):
+    try:
+        await page.locator("//span[normalize-space()='Query Response']").click(timeout=3000)  # clicking the query bar
+    except TimeoutError:
+        await page.locator('//button[contains(normalize-space(),"Other")]').click()  # clicking the other button if above button is hidden
+        await page.locator("//span[normalize-space()='Query Response']").click()  # clicking the query bar
 
-    await page.locator("//span[normalize-space()='Query Response']").click()  # clicking the query bar
     remarks = ['uploaded', 'File uploaded', 'Files done uploading', 'UPLOAD', 'upload', 'FILES UPLOAD', 'DONE']
     remark = random.choice(remarks)
     # print(remark)

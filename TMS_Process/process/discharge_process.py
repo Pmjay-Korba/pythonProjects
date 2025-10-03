@@ -55,27 +55,31 @@ async def discharge_main(page:Page, pdfs_list):
     await page.set_input_files('//label[@for="MedicalSuperintendentDeclarationFormDuringDischarge"]/following-sibling::div//input', pdf_2)
     await asyncio.sleep(1)
 
-    max_retries = 3
-    for attempt in range(max_retries):
-        await page.locator("//button[normalize-space()='SAVE']").click()
-        try:
-            await page.wait_for_selector(
-                "//span[normalize-space()='Discharge Consent saved successfully.']",
-                timeout=1000
-            )
-            print("Saved successfully ✅")
-            break
-        except TimeoutError:
-            print(f"Attempt {attempt + 1} retrying...")
+    # max_retries = 3
+    # for attempt in range(max_retries):
+    #     await page.locator("//button[normalize-space()='SAVE']").click()
+    #     try:
+    #         await page.wait_for_selector("//span[normalize-space()='Discharge Consent saved successfully.']")
+    #         print("Saved successfully ✅")
+    #         break
+    #     except TimeoutError:
+    #         print(f"Attempt {attempt + 1} retrying...")
+    #
+    # else:
+    #     raise Exception("Save failed after multiple attempts ❌")
 
-    else:
-        raise Exception("Save failed after multiple attempts ❌")
+    await page.locator("//button[normalize-space()='SAVE']").click()
+    loader = page.locator("//img[@id='loading-image' and @alt='Loading...']")  # loader
+    await loader.wait_for(state="visible", timeout=15000)
+    await loader.wait_for(state="detached")
+
+    await page.wait_for_selector("//span[normalize-space()='Discharge Consent saved successfully.']")
 
     await page.locator("//button[normalize-space()='DISCHARGE' and not(@disabled)]").click()
     await asyncio.sleep(5)
-
-
     # sys.exit()
+
+
 
 
 async def inject_continue_button(page: Page, button_text: str = "Fill Discharge & Surgery Date than\nClick Here", position: str = "bottom-right"):

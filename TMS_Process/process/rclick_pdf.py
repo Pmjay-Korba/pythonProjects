@@ -121,7 +121,7 @@ if __name__ == "__main__":
     print(f"📥 Raw args received: {sys.argv[1:]}")
 
     # 1️⃣ Cleanup PDFs older than 1 hour
-    cleanup_old_pdfs(hours=0.001)
+    cleanup_old_pdfs(hours=1)
 
     # 2️⃣ Create new PDF
     make_pdf_from_selection(sys.argv[1:])

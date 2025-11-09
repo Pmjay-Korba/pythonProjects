@@ -12,7 +12,7 @@ from EHOSP.tk_ehosp.alert_boxes import error_tk_box, tk_ask_yes_no, tk_ask_input
 from TMS_Process.process.claim_clearer_RF import is_home_page, select_ALL_and_search
 from TMS_Process.process.discharge_process import discharge_main
 from TMS_Process.process.enhancement import enhancement, enhancement_type_2
-from TMS_Process.process.pdf_creator_threaded import generate_fixed_pdfs_threaded
+from TMS_Process.process.pdf_creator_threaded import generate_fixed_pdfs_threaded, discharging_pdfs
 from TMS_Process.process.tks import initial_setup_for_base_folder
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils.colour_prints import ColourPrint, message_box
@@ -143,7 +143,7 @@ async def _main(reg_multiline_str, set_timeout_is, cdp_port=9222):
                     days_enhanced_int = [int(i) for i in days_enhanced_str]
                     total_enhanced = sum(days_enhanced_int)
                     answer = tk_ask_yes_no(question=f'The total enhanced already taken is: {total_enhanced} days.\nDo You want to take more enhancement.\n\nIf clicked "NO" it will proceed.')  # returns True False
-                    if answer:
+                    if answer:  # enhancement will be taken
                         # await enhancement(page=page, pdf_1=pdf_1mb)
                         pdf_1, pdf_2, pdf_3 = _create_custom_pdf_new(registration_no=registration_no)
                         await enhancement_type_2(page=page, pdfs_list=[pdf_1, pdf_2, pdf_3])
@@ -154,7 +154,7 @@ async def _main(reg_multiline_str, set_timeout_is, cdp_port=9222):
                     else:
                         answer2  = tk_ask_yes_no( question='Do you want to DISCHARGE or PROCEED TO NEXT CASE NUMBER\n\n"YES" : Process discharge\n"NO" : Proceed to next Case.No.')  # returns True False
                         if answer2:  # means continue discharge else proceed to next reg.no.
-                            pdf_1, pdf_2, pdf_3 = _create_custom_pdf_new(registration_no=registration_no)
+                            pdf_1, pdf_2, pdf_3 = _discharge_pdfs_generate(registration_no=registration_no)
                             pdf_4 = pdf_1
                             await discharge_main(page=page, pdfs_list=[pdf_1, pdf_2, pdf_3, pdf_4])
                             delete_pdf(pdf_1)
@@ -165,7 +165,7 @@ async def _main(reg_multiline_str, set_timeout_is, cdp_port=9222):
                             print('Continuing')
                 else:  # for those whom the enhancement is not required
                     "testing the discharge"
-                    pdf_1, pdf_2, pdf_3 = _create_custom_pdf_new(registration_no=registration_no)
+                    pdf_1, pdf_2, pdf_3 = _discharge_pdfs_generate(registration_no=registration_no)
                     pdf_4 = pdf_1
                     await discharge_main(page=page, pdfs_list=[pdf_1, pdf_2, pdf_3, pdf_4])
                     delete_pdf(pdf_1)
@@ -241,6 +241,19 @@ def _create_custom_pdf_new(registration_no):
         raise FileNotFoundError(err_msg)
     pdf_1, pdf_2, pdf_3 = generate_fixed_pdfs_threaded(txt_file_path=text_file_path)
     return pdf_1,pdf_2,pdf_3
+
+def _discharge_pdfs_generate(registration_no):
+    ColourPrint.print_yellow(message_box('Please wait. Scanning drives...'))
+    text_file_path = search_file_all_drives_base(filename=registration_no)
+    text_file_path = text_file_path[0]
+    print(json.dumps(text_file_path, indent=2))
+    if not text_file_path:
+        err_msg = f'The txt file is not present in the folder for registration no {registration_no}.'
+        error_tk_box(error_message=err_msg)
+        raise FileNotFoundError(err_msg)
+    pdf_1, pdf_2, pdf_3 = discharging_pdfs(txt_file_path=text_file_path)
+    return pdf_1,pdf_2,pdf_3
+
 
 async def click_first_until_second_present(page, first_locator, second_locator, max_retries=5, wait_time=1.0):
     """

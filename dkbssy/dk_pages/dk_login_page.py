@@ -3,8 +3,8 @@ import time
 from pathlib import Path
 
 import requests
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+# from selenium.webdriver.common.by import By
+# from selenium.webdriver.support import expected_conditions as EC
 
 
 class Page:

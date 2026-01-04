@@ -8,7 +8,7 @@ from dkbssy.utils.colour_prints import ColourPrint
 import os
 
 
-def dates_of_incentive_cases(workbook_name, sheet_name) -> list[tuple[str | float | datetime | None, ...]]:
+def dates_of_incentive_cases(workbook_name, sheet_name) -> list[str | float | datetime]:
     """
     Getting the dates of the incentive cases from the department wise Excel
     :param workbook_name: department wise Excel workbook name
@@ -17,8 +17,13 @@ def dates_of_incentive_cases(workbook_name, sheet_name) -> list[tuple[str | floa
     """
     workbook = openpyxl.load_workbook(workbook_name, data_only=True)
     worksheet = workbook[sheet_name]
-    col_data = worksheet.iter_cols(min_row=2, min_col=6, max_col=6, values_only=True)
-    return list(col_data)
+    col_data = worksheet.iter_cols(min_row=2, min_col=4, max_col=4, values_only=True)
+    # print('---===--==', list(col_data)[0])
+    date_data_tuple =list(col_data)[0]
+    # print('=-=-=-=-', date_data_tuple)
+    date_data = [d_data for d_data in date_data_tuple if d_data is not None]
+    # print('date_datas', date_data)
+    return date_data
 
 
 class IncentiveNameGenerator:
@@ -62,23 +67,50 @@ class IncentiveNameGenerator:
         row_data = list(work_sheet.iter_rows(max_col=26, values_only=True))
         return row_data
 
-    def filter_category(self, sheet_name, category_number, depart_name_for_gen=None, sort_by_amount=True) -> list[
+
+    def filter_unwanted_names(self, list_with_unwanted_names, unwanted_post_list):
+        """
+        Using this for removing names in counselor, Psychologist etc.
+        :param list_with_unwanted_names: master list with all names including the unwanted
+        :param unwanted_post_list: dict with name and corresponding category in which it is not required
+        :return: unwanted removed master list
+        """
+        '''(3, 'Dr. Durga Shankar Patel', 66170010344, '6,1', 'Professor', 'ANAES', 'ANAES', datetime.datetime(2022, 3, 3, 0, 0), 2106, 28511, 9898, 474434, 12004, 502945, 10275, 431551.19, 432444.1703000001, None, None, None, None, None, None, None, None, None)]'''
+        # unwanted_post_list = ['Counsellor', 'Psychologist', 'Health Assistant']
+        # unwanted_post_list = []
+
+        filtered_unwanted_list =[i for i in list_with_unwanted_names if i[4] not in unwanted_post_list]
+        # ColourPrint.print_pink(filtered_unwanted_list)
+        return filtered_unwanted_list
+
+
+    def filter_category(self, sheet_name, category_number, unwanted_post_list, depart_name_for_gen=None, sort_by_amount=True) -> list[
         tuple]:
         """
         Filtering according to provided category
         :param sort_by_amount: sort by ascending order
+        :param unwanted_post_list: unwanted posts
         :param depart_name_for_gen: department for which entry to be made
         :param sheet_name: Sheet Name
         :param category_number: category's number
         :return: filtered list
         """
         all_sheet_data_return = self.get_all_sheet_data(sheet_name)
-        '''[('Column1', 'Employee Name', 'Employee Code', 'Category', 'Post Name', 'Posting', 'Depart', 'Cases', 'Pend Cases', 'Pend Amount', 'Paid Cases', 'Paid Amount', 'Web Tot cases', 'Web Tot Amount', 'DB1Tot Case entry', 'DB1Tot amount entry', 'DB2Tot Case 2', 'DB2Tot Amount 2', None, ' ', None, None, None, None, None, None), 
+        '''[('Column1', 'Employee Name', 'Employee Code', 'Category', 'Post Name', 'Posting', 'Depart', 'Cases', 'Pend Cases', 'Pend Amount', 'Paid Cases', 'Paid Amount', 'Web Tot cases', 'Web Tot Amount', 'DB1Tot Case entry', 'DB1Tot amount entry', 'DB2Tot Case 2', 'DB2Tot Amount 2', temp_db_amount, ' ', None, None, None, None, None, None), <- OLD COLUMN IN NEW DB1 DB2 DELETED AND DB3 INCLUDED
             (3, 'Dr. Durga Shankar Patel', 66170010344, '6,1', 'Professor', 'ANAES', 'ANAES', datetime.datetime(2022, 3, 3, 0, 0), 8154, 403446, 1750, 71397, 9904, 474843, 8229, 403718.3462428572, 7793, 399197.5933333333, None, None, None, None, None, None, None, None), ...]'''
         filtered_row_category_data = [row_data for row_data in all_sheet_data_return if
                                       str(category_number) in str(row_data[3])]
+        ColourPrint.print_green(filtered_row_category_data)
+
+        'filtering the unwanted category'
+        filtered_row_category_data = self.filter_unwanted_names(list_with_unwanted_names=filtered_row_category_data,unwanted_post_list=unwanted_post_list)
+        # ColourPrint.print_pink(filtered_row_category_data)
+
+        # sys.exit('stopped')
+
         if sort_by_amount:
-            filtered_row_category_data.sort(key=lambda x: x[18])
+            # ColourPrint.print_yellow(filtered_row_category_data[18])
+            filtered_row_category_data.sort(key=lambda x: x[16])  # by temp_db_amount
         if depart_name_for_gen is None:
             return filtered_row_category_data
         else:
@@ -154,7 +186,7 @@ class IncentiveNameGenerator:
             return_date = leave_periods_pairs[non_work_day + 1]
             if leave_date and return_date:  # non None data
                 if leave_date < date_of_incentive < return_date:
-                    print('Name =', each_emp_data["Name_After"], 'Leave dates= ', leave_date, 'return date= ', return_date)
+                    # print('Name =', each_emp_data["Name_After"], 'Leave dates= ', leave_date, 'return date= ', return_date)
                     return  True
 
             elif (leave_date and not return_date) or (not leave_date and return_date):
@@ -183,7 +215,7 @@ class IncentiveNameGenerator:
         collected_names = []
         # print('----------------', len(incentive_dates_list_data))
         set_list_sorted = sorted(list(set(incentive_dates_list_data)))
-        # print('===============', len(set_list_sorted))
+        # print('===============', len(set_list_sorted), set_list_sorted)
         for inc_date in set_list_sorted:
             date_wise_names = [inc_date]  # list for collecting names
 
@@ -225,13 +257,14 @@ class IncentiveNameGenerator:
         return collected_names
 
     def collect_names_for_single_date(self,
-                      sheet_name_is_sheet3,
-                      sheet_name_is_sheet2,
-                      category_number,
-                      inc_date,
-                      number_of_names: int | None = None,
-                      depart_name_for_gen=None,
-                      sort_by_amount=True):
+                sheet_name_is_sheet3,
+                sheet_name_is_sheet2,
+                category_number,
+                inc_date,
+                unwanted_post_list,
+                number_of_names: int | None = None,
+                depart_name_for_gen=None,
+                sort_by_amount=True):
         """
         Getting the names of the employees for the single date
         :param sheet_name_is_sheet3: sheet 3 for getting the employee data
@@ -241,10 +274,11 @@ class IncentiveNameGenerator:
         :param number_of_names: how many employee names to be included in a single case number incentive
         :param depart_name_for_gen: required for filtering the consultants and residents names of the department
         :param sort_by_amount: sorting as per the received amount
+        :param unwanted_post_list: posts which can be optional like counselor
         :return: names for the specific date
         """
 
-        filtered_names_sheet3 = self.filter_category(sheet_name=sheet_name_is_sheet3, category_number=category_number, depart_name_for_gen=depart_name_for_gen, sort_by_amount=sort_by_amount)
+        filtered_names_sheet3 = self.filter_category(sheet_name=sheet_name_is_sheet3, category_number=category_number, depart_name_for_gen=depart_name_for_gen, sort_by_amount=sort_by_amount, unwanted_post_list=unwanted_post_list)
         emp_working_periods_sheet2 = self._working_periods(sheet_name=sheet_name_is_sheet2)  #  generator object
 
         # number of names redefining
@@ -276,8 +310,10 @@ class IncentiveNameGenerator:
                     next is matching the dates of incentive cases to the working periods
                     """
 
-                    # ColourPrint.print_green(f'{working_employee_period_dict["Name_After"]=},{working_employee_period_dict["JOINING DATE"]=}, {working_employee_period_dict["RELIEVING DATE"]}')
+                    # ColourPrint.print_green(f'{working_employee_period_dict["Name_After"]=},{working_employee_period_dict["JOINING DATE"]=}, {working_employee_period_dict["RELIEVING DATE"]=}')
                     if self._is_eligible(working_employee_period_dict):
+                        # print(type(inc_date), inc_date)
+                        # print(working_employee_period_dict['JOINING DATE'], inc_date, working_employee_period_dict["RELIEVING DATE"])
                         if working_employee_period_dict['JOINING DATE'] < inc_date < working_employee_period_dict["RELIEVING DATE"]:
                             # ColourPrint.print_blue(f'{employee_in_sheet3[1] =}, {working_employee_period_dict['Name_After']=}')
                             """
@@ -346,9 +382,9 @@ def count_of_name_in_each_category(retrieving_all_incentive_names_datas):
     for name_data in retrieving_all_incentive_names_datas:
         cat = name_data[5]
         if cat is not None:
-            print('=========',name_data)
+            # print('=========',name_data)
             # cat = name_data[5]
-            print('=========',cat)
+            # print('=========',cat)
             if cat not in dict_cat_count:
                 dict_cat_count[cat] = count
             else:
@@ -369,25 +405,30 @@ def amount_distribution_of_all_case_number_of_sheet(retrieved_all_incentive_case
     master_list_with_amount = []  # containing the case_number: each case number emp datas
     for case_num_data in retrieved_all_incentive_case_datas:  #[(3253, 'CASE/PS6/HOSP22G146659/CK7130670', 'Ophthalmology', 'SICS with non-foldable IOL', 2210, datetime.datetime(2023, 11, 1, 0, 0), 'Kartik Ram'), (3254, 'CASE/PS6/HOSP22G...)]
         # print(case_num_data)
-        case_number = case_num_data[1]
+        case_number = case_num_data[1]  # UPDATED (1966, 'CASE/PS6/HOSP22G146659/CK7130736', 2210, datetime.datetime(2023, 11, 1, 0, 0), 'Mahetarin Bai', 'Ophthalmology', 'SICS with non-foldable IOL')
         # ColourPrint.print_blue('/////////////////////////')
-        total_amount = case_num_data[4]
+        total_amount = case_num_data[2]
         # print(case_number, total_amount)
 
         name_counts_in_each_cats = count_of_name_in_each_category(retrieving_all_incentive_names_datas)
-        print('Counts of name in each category', name_counts_in_each_cats)
+        print(f'Counts of name in each category [{case_number}]', name_counts_in_each_cats)
 
         each_case_number_emp_data_with_amount = [case_number]
         for name_data in retrieving_all_incentive_names_datas:  #[(1, 'DR.ANMOL MADHUR MINZ', 'Associate Professor', 'vfèk"Bkrk vLirky vèkh{kd ]lgk;d vèkh{kd uksMy vfèkdkjh', '04170140656', 1), (2, 'AVINASH MESHRAM', 'Dean',...]
             name = name_data[1]
             emp_code = name_data[4]
             inc_category = name_data[5]
-            print(inc_category, f'--------{name}...........................>>')
+            # print(inc_category, f'--------{name}...........................>>')
 
             if inc_category is not None:
                 percentage = inc_percent_amt_calculate(inc_category)
                 divided_percentage = percentage/name_counts_in_each_cats[inc_category]
-                divided_amount = round(divided_percentage * total_amount, 4)
+                # print('pppppp', divided_percentage, total_amount)
+
+                try:
+                    divided_amount = round(divided_percentage * total_amount, 4)
+                except:
+                    raise ValueError(f'Error in name: {name}, total amount: {total_amount}, percentage: {percentage}')
 
             # each_emp_data_with_amount =
             # print(name, emp_code, inc_category, percentage, divided_percentage, divided_amount)
@@ -413,7 +454,7 @@ def update_incentive2_from_sql(emp_id_and_total_amount_list : list[tuple]):
     for emp_id, amount in emp_id_and_total_amount_list:
         for emp_details_tuple in rows_data:
             if emp_id == str(emp_details_tuple[2].value):
-                ColourPrint.print_yellow('==============')
+                # ColourPrint.print_yellow('==============')
                 # print(emp_details_tuple[2].value, 'type: ', type(emp_details_tuple[2].value))
                 emp_details_tuple[16].value = amount  # Column 'Q'
                 break

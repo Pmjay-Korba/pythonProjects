@@ -1,4 +1,5 @@
 import datetime
+import pathlib
 import time
 import aiohttp
 import openpyxl
@@ -131,6 +132,12 @@ async def process_one_case_number(row_data, session):
                 if not data['d']:
                     ColourPrint.print_pink(f'{case_number} - No Name Entries')
                     amt = "No Names Present"
+                    print("CHECK IN APPROVER SITE",
+                          f'https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleApViewDME.aspx?ci={case_number}')
+                    print("CHECK IN MAIN SITE",
+                          # f"https://dkbssy.cg.nic.in/secure/incentivemodule/incentivedetailsdme.aspx?c={case_number}&amt={amount}")
+                          f"https://dkbssy.cg.nic.in/secure/incentivemodule/incentivedetailsdme.aspx?c={case_number}")
+
                 else:
                     names_in = data['d']
                     for name in names_in:
@@ -179,9 +186,24 @@ async def process_multi(main_batch_divide_list, asp_net_session):
 
 
 
-excel_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\Upload Formats\eye\eye 3 1.xlsx"
+excel_paths = [
+    r"G:\My Drive\GdrivePC\Hospital\RSBY\New\Upload Formats\Med\Med 5\Med 5 3.xlsx"
 
-asyncio.run(main(excel_path=excel_path))
+
+
+]
+for file in excel_paths:
+    if not pathlib.Path(file).exists():
+        raise FileNotFoundError(file)
+
+for excel_path in excel_paths:
+
+
+    asyncio.run(main(excel_path=excel_path))
+    ColourPrint.print_yellow(excel_path)
+    ColourPrint.print_yellow('*'*100)
+    print()
+
 
 
 

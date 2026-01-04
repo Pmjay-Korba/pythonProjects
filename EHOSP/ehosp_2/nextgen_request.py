@@ -253,7 +253,6 @@ def validate_discharge_type(single_dischargeable_ipd):
         return dis_code_is
 
 
-
 def summary_entry(each_patient_summary_json:dict, single_dischargeable_ipd_entry, user_id, verified_discharge_date_is, request, token):
     # single_dischargeable_ipd_entry = [2017287, datetime.datetime(2017, 10, 15, 0, 0), ['Pyrexia of unknown origin, Anemia'], ('C/O VOMITING AND LOOSE STOOLS, FEVER', 'IV PANTOP, IV PCM, IV ANTIBIOTICS', 'VITAL STABLE', 'FEEL WELL', 'BED REST'), None]
 
@@ -449,10 +448,6 @@ def get_ward_id_by_ipd(context, token: str, ipd_no):
     else:
         print(f"Request failed: {response.status}")
         return None
-
-
-
-
 
 
 def check_discharged_or_not(context, token: str, ipd_no):
@@ -963,7 +958,6 @@ def process_diagnosis_with_icd_code(page, dischargeable_ipds):  #  dischargeable
     print()
 
     return dischargeable_ipds
-
 
 
 def get_icd_map_using_page(page, concept_id: str):

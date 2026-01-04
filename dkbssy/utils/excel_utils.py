@@ -210,6 +210,47 @@ class ExcelMethods:
         workbook_master.close()
         return dict_name_row_number
 
+
+def get_employee_code_row_number(auto2)->dict:
+    """
+    Used to get the employee code row number
+    :param auto2: excel path of auto2
+    :return: dict
+    """
+    wb_auto2 = openpyxl.load_workbook(auto2)
+    ws = wb_auto2['Sheet3']
+    name_and_ecode_list_data = ws.iter_rows(min_col=3, max_col=3)
+    # print(name_and_ecode_list)
+    ecode_list = [(str(cell[0].value),cell[0].row) for cell in name_and_ecode_list_data]
+    ecode_row_num_dict = dict(ecode_list)
+    wb_auto2.close()
+    return ecode_row_num_dict
+
+
+def sqlite_process_3_by_ecode():
+    db = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\incentiveDatabase_3.db"
+    conn = sqlite3.connect(db)
+    cursor = conn.cursor()
+
+    # Execute SQL query
+    cursor.execute("""
+            SELECT e.name_emp, e.code_emp, COUNT(d.distri_amount) AS total_incentive_count, 
+                   SUM(d.distri_amount) AS total_incentive
+            FROM emp_detail_table e
+            JOIN distribution_table d ON e.id_emp = d.distri_name_id
+            GROUP BY e.id_emp
+            """)
+
+    # Fetch all results: [(name1, ecode1, count1, sum1), (name2, ecode2, count2, sum2), ...]
+    results = cursor.fetchall()
+
+    # Close connection
+    cursor.close()
+    conn.close()
+
+    return results
+
+
 def remove_case_number_from_excel(case_number, excel_path):
     wb = openpyxl.load_workbook(excel_path)
     ws = wb['Sheet1']

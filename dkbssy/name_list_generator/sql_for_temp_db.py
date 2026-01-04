@@ -1,9 +1,9 @@
 import datetime
 import sqlite3
 import sys
-from pypdf.constants import ColorSpaces
+# from pypdf.constants import ColorSpaces
 
-from ehospital_proper.colour_print_ehosp import ColourPrint
+from dkbssy.utils.colour_prints import ColourPrint
 
 
 # data = [
@@ -25,7 +25,7 @@ class SqlForTemp:
     def insert_each_case_num_data (self, each_data:list) -> None:  # each data = ['CASE/PS6/HOSP22G146659/CK7130670', ('DR.ANMOL MADHUR MINZ', '04170140656', 1, 3.1571), ('AVINASH MESHRAM', 66170010023, 1, 3.1571), ('RAVIKANT JATWAR', '04170140099', 1, 3.1571), ('Dr. Durga Shankar Patel'...]
         """
         inserting the data to database
-        :param each_data: incentive details of each case nu,ber with each  employee amount data
+        :param each_data: incentive details of each case number with each  employee amount data
         :return: None
         """
         case_number = each_data[0]
@@ -56,7 +56,7 @@ class SqlForTemp:
             # step 2 fetching the case number id
             'fetching the id of case number'
             _id_of_case_in_db = self.fetch_the_case_num_id_from_db(each_data=each_data)
-            ColourPrint.print_pink(f'deleting the {_id_of_case_in_db}')
+            ColourPrint.print_pink(f'id of the {_id_of_case_in_db}')
 
             # # --- BEFORE DELETE: Print matching rows ---
             # self.cursor.execute('''
@@ -89,15 +89,30 @@ class SqlForTemp:
 
             for each_employee_data in each_data[1:]:  # skipping case number
                 counting+=1
-                print('Counting of entry: ', counting)
+                # print('Counting of entry: ', counting)
                 'fetching the id of each employee'
                 id_of_emp_in_db = self.fetch_id_of_employee_from_db(each_emp_data=each_employee_data)
-                print('-------------')
+                # print('-------------')
                 _emp_category = each_employee_data[2]
                 _emp_amount = each_employee_data[3]
                 all_case_number_distribution_data.append((_id_of_case_in_db,id_of_emp_in_db,_emp_category,_emp_amount))
 
         # print(f'{all_case_number_distribution_data=}')
+
+        seen = set()
+        dupes = []
+
+        for row in all_case_number_distribution_data:
+            key = (row[0], row[1], row[2])
+            if key in seen:
+                dupes.append(key)
+            else:
+                seen.add(key)
+
+        if dupes:
+            print("⚠️ Duplicate entries within the data being inserted:")
+            for d in dupes[:10]:
+                print(d)
 
         # # Step 5.0 to check errors when there occurs in executemany
         # for row in all_case_number_distribution_data:
@@ -115,6 +130,7 @@ class SqlForTemp:
             ''', all_case_number_distribution_data
         )
 
+        # sys.exit("Manually stop")
         self.conn.commit()
 
 
@@ -133,7 +149,7 @@ class SqlForTemp:
             ''', (case_number,))
         result = self.cursor.fetchone()
         id_of_case_num = result[0]
-        print(result, id_of_case_num)
+        # print(result, id_of_case_num)
         return id_of_case_num
 
     def fetch_id_of_employee_from_db(self, each_emp_data):
@@ -146,7 +162,7 @@ class SqlForTemp:
         # each_emp_data = ('DR.ANMOL MADHUR MINZ', '04170140656', 1, 3.1571)
         _employee_name = each_emp_data[0]
         _employee_code = each_emp_data[1]
-        print(_employee_name,_employee_code)
+        # print(_employee_name,_employee_code)
         self.cursor.execute(
             ''' SELECT id_emp_table FROM emp_table
             WHERE emp_tab_emp_code = ?
@@ -155,10 +171,10 @@ class SqlForTemp:
 
         result = self.cursor.fetchone()
         if not result:
-            raise ValueError(f"Employee with code {_employee_name}, {_employee_code} not found in emp_detail_t.")
+            raise ValueError(f"Employee with code {_employee_name}, {_employee_code} not found in emp_detail_t.\ntemp_db_path = {self.temp_db_path}")
 
         _id_of_emp= result[0]
-        print(f'{_id_of_emp=}')
+        # print(f'{_id_of_emp=}')
         return _id_of_emp
 
     def fetch_updated_amount(self):

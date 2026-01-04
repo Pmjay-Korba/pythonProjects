@@ -1,4 +1,5 @@
 import datetime
+import json
 import re
 import sqlite3
 
@@ -276,7 +277,80 @@ def sql_update_for_3(full_list_of_list):
 
     conn.close()
 
+def update_single_case(cursor, current_date, full_list_of_list):
 
+    case_number = full_list_of_list[0]
+
+    # Insert case number only if not exists
+    cursor.execute("""
+        INSERT INTO case_num_table (case_number, date_entry)
+        SELECT ?, ?
+        WHERE NOT EXISTS (SELECT 1 FROM case_num_table WHERE case_number = ?)
+    """, (case_number, current_date, case_number))
+
+    cursor.execute("SELECT id_case_num FROM case_num_table WHERE case_number = ?", (case_number,))
+    case_num_id = cursor.fetchone()[0]
+
+    # Remove old distribution
+    cursor.execute("DELETE FROM distribution_table WHERE distri_case_num_id = ?", (case_num_id,))
+
+    # Prepare new distribution
+    inserts = []
+
+    for row in full_list_of_list[6:]:
+        # Example: "Dr. Gopal Singh Kanwer@3.68#1^11170010478"
+        try:
+            name, amount, cat_num, e_code = re.split(r'[@#^]', row)
+        except ValueError:
+            print("Parse error →", row)
+            continue
+
+        # Existing employee?
+        cursor.execute("SELECT id_emp FROM emp_detail_table WHERE code_emp = ?", (e_code,))
+        emp_row = cursor.fetchone()
+
+        if emp_row:
+            emp_id = emp_row[0]
+        else:
+            cursor.execute("INSERT INTO emp_detail_table (name_emp, code_emp) VALUES (?, ?)", (name, e_code))
+            emp_id = cursor.lastrowid
+
+        inserts.append((emp_id, cat_num, case_num_id, amount))
+
+    # Batch insert
+    cursor.executemany("""
+        INSERT INTO distribution_table (distri_name_id, distri_cat_id, distri_case_num_id, distri_amount)
+        VALUES (?, ?, ?, ?)
+    """, inserts)
+
+    # Update last-seen date
+    cursor.execute("""
+        UPDATE case_num_table
+        SET date_entry = ?
+        WHERE id_case_num = ?
+    """, (current_date, case_num_id))
+
+
+def process_all_cases_to_db_3(flatten_list):
+    sql_path = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\incentiveDatabase_3.db"
+    conn = sqlite3.connect(sql_path)
+    cursor = conn.cursor()
+
+    # current_date = datetime.date.today()
+    current_date = datetime.date.today().strftime("%Y-%m-%d")
+
+    for full_list_of_list in flatten_list:
+        update_single_case(cursor, current_date, full_list_of_list)
+
+    conn.commit()
+    conn.close()
+
+
+if "__main__" == __name__:
+    with open (r'G:\Other computers\My Computer\pythonProject\svnsssy\new_svnsssy\temp_cases_before_db.json' , "r", encoding="utf8") as f:
+        flatten_list = json.load(f)
+    print(len(flatten_list))
+    process_all_cases_to_db_3(flatten_list)
 
 
 

@@ -1,42 +1,58 @@
 import openpyxl
-from dkbssy.name_list_genrator.name_list_gen import IncentiveNameGenerator, dates_of_incentive_cases, \
+from dkbssy.name_list_generator.name_list_gen import IncentiveNameGenerator, dates_of_incentive_cases, \
     retrieving_all_incentive_case_data, retrieving_all_incentive_names_data, \
     amount_distribution_of_all_case_number_of_sheet, update_incentive2_from_sql
-from dkbssy.name_list_genrator.sql_for_temp_db import SqlForTemp
+from dkbssy.name_list_generator.sql_for_temp_db import SqlForTemp
 from dkbssy.utils.colour_prints import ColourPrint
 
-"""CHANGES REQUIRED BEFORE RUNNING
-1 INCENTIVE_NAME_ADDING_WORKBOOK_NAME
-2 required_cat_num
-3 DEPARTMENT NAME ->Change the incentive_ver_3 B5"""
-INCENTIVE_NAME_ADDING_WORKBOOK_NAME = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\Upload Formats\SNCU\SNCU  6.xlsx"
-required_cat_num = [1, 2, 3, 4, 5, 7, 8, 9]  # Anaesthesia removed if required add '6' with comma ',' sign
 
-ColourPrint.print_pink('Confirm the Department of Entry in Excel B5')
-input("Press Enter to continue")
-ColourPrint.print_pink("Confirm all REQUIRED CATEGORY are present")
-input("Press Enter to continue")
+##################################################################################################################
+
+INCENTIVE_NAME_ADDING_WORKBOOK_NAME = r"G:\My Drive\GdrivePC\Hospital\RSBY\New\Upload Formats\Med\Med 5\Med 5 1.xlsx"
+
+required_cat_num = [1, 2, 3, 4, 5,  7, 8, 9]  # Anaesthesia removed if required add '6' with comma ',' sign
+
+
+##################################################################################################################
+
+
 
 incen_obj = IncentiveNameGenerator(r"G:\My Drive\GdrivePC\Hospital\RSBY\New\Incentive_auto_ver_3.xlsx")
 # all_sheet_data = incen_obj.get_all_sheet_data('Sheet3')
 
 depart_name_for_generated = incen_obj.depart_name_for_entry('Sheet1', 'B5')
-ColourPrint.print_yellow('DEPARTMENT NAME ===============>')
-print(depart_name_for_generated)
+# ColourPrint.print_yellow('DEPARTMENT NAME ===============>')
+# print(depart_name_for_generated)
 
+ColourPrint.print_pink(f'Confirm the Department of Entry in Excel B5. The department name is {depart_name_for_generated}.')
+input("Press Enter to continue")
+ColourPrint.print_pink(f"Confirm all REQUIRED CATEGORY are present. Categories present are: {required_cat_num}")
+# print(required_cat_num)
+input("Press Enter to continue")
 
+"getting the unwanted post which can be decreased in some incentive cases -> post names must be same as in post column of Excel ver3 sheet3"
+unwanted_post_list_collection = ['Counsellor', 'Psychologist', 'Health Assistant', 'Accountant']
+unwanted_post_list = [] # for storing the preferences
+for unwanted in unwanted_post_list_collection:
+    ColourPrint.print_pink(f'Do you want to add the names under the {unwanted} category. Press "Y" or "y" for YES OR press "N" or "n" for NO.')
+    response = input("Type Here: ").strip().lower()
+    if response == "y":
+        continue
+    elif response == "n":
+        unwanted_post_list.append(unwanted)
+    else:
+        raise KeyError('Press "Y" or "y" for YES OR press "N" for NO.')
 
+ColourPrint.print_yellow("Unwanted", unwanted_post_list)
+# input('lllllllllllllllllllllllllllllllllll')
 
-
-
-
-
-
+# GETTING THE DATES OF INCENTIVES IN DEPARTMENT WISE EXCEL
 incentive_date_data = dates_of_incentive_cases(workbook_name=INCENTIVE_NAME_ADDING_WORKBOOK_NAME, sheet_name='Sheet4')
-incentive_date_data = incentive_date_data[0]  # list unpacking as it has tuple of dates
+# incentive_date_data = incentive_date_data[0]  # list unpacking as it has tuple of dates
 # print(incentive_date_data)
 
 number_of_inventive_cases_count = len(incentive_date_data)
+
 
 all_category_names = []
 
@@ -53,7 +69,8 @@ for date in incentive_date_data:
             depart_name_for_gen=depart_name_for_generated,
             sort_by_amount=True,
             inc_date=date,
-            number_of_names=50)
+            number_of_names=50,
+            unwanted_post_list=unwanted_post_list)
         # print('---------------->', collect)
         each_data_data.append(collect)
     all_date_data.append(each_data_data)
@@ -120,8 +137,8 @@ def percent_filtered_name_more_than_90_percent(sorted_names_count, number_of_inv
     for name_and_count in sorted_names_count:
         if name_and_count[1] / number_of_inventive_cases_count > 0.90:
             cccc += 1
-            print(cccc)
-            print(name_and_count)
+            # print(cccc)
+            # print(name_and_count)
             percent_filter_name_list.append(name_and_count)
     return percent_filter_name_list
 
@@ -151,6 +168,8 @@ def final_formated_names_for_excel_as_per_excel_headers(percent_filtered_name_li
 
     name_and_categ_collection = []
     for inc_name, inc_count in percent_filtered_name_list_more_than_the_90:
+        if inc_name == "JYOTI GHRITLAHRE":
+            continue
         for each_employee_data in all_sheet_data:
             master_employee_name = each_employee_data[1]
             master_employee_code = each_employee_data[2]
@@ -158,7 +177,7 @@ def final_formated_names_for_excel_as_per_excel_headers(percent_filtered_name_li
             master_sheet_post = each_employee_data[4]
 
             if inc_name == master_employee_name:
-                # print(inc_name, '====', master_employee_name)
+                # ColourPrint.print_yellow(inc_name, '==>><<==', master_employee_name)
                 # print(f'{type(emp_category)=}')
                 if type(master_sheet_category) == str:
                     master_sheet_category = select_category_from_multiple_category(depart_name_for_generated,
@@ -187,6 +206,8 @@ def select_category_from_multiple_category(depart_name_for_generated, each_emplo
 
     if name == 'Dr. Durga Shankar Patel':
         if depart_name_for_generated in surgical_depart:
+            category = 6
+        elif 6 in required_cat_num:  # for medicine depart if willing
             category = 6
         else:
             category = 1
@@ -281,11 +302,13 @@ def uploading_names_in_excel_sheet(final_names_90_formatted_for_excel, workbook_
 
     # Save the updated workbook
     wb.save(workbook_path)
+    wb.close()
 
 
 uploading_names_in_excel_sheet(final_names_more_than_90_percent_formatted_for_excel, INCENTIVE_NAME_ADDING_WORKBOOK_NAME, 'Sheet2')
 print("Updated: ", INCENTIVE_NAME_ADDING_WORKBOOK_NAME)
-
+# ColourPrint.print_pink('DELETE THE DUPLICATE NAMES IF PRESENT LIKE JYOTI GHRITLAHRE. THAN SAVE AND CLOSE EXCEL. THAN PRESS ENTER')
+# input()
 
 """ now retrieving the amount gaining by the members """
 
@@ -307,3 +330,7 @@ sql_temp_object.close()
 
 'updating the incentive2 Excel'
 update_incentive2_from_sql(emp_id_and_total_amount_list=emp_id_and_amount_list)
+
+
+
+'counceller, health assistant, Psychologist'

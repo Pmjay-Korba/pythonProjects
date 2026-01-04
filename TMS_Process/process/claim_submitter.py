@@ -1,5 +1,7 @@
 import asyncio
 import time
+import traceback
+
 from playwright.async_api import async_playwright, Page, TimeoutError, expect
 from TMS_Process.process.claim_clearer_RF import is_home_page, select_ALL_and_search
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
@@ -45,7 +47,7 @@ async def claim_submitter(page):
 
     await page.locator("(//something)[1]").click()
 
-    await page.locator("//input[@id='Hospital Bill Number']").fill(" ")
+    # await page.locator("//input[@id='Hospital Bill Number']").fill(" ")
     # time.sleep(2)
     await page.locator("//button[normalize-space()='SAVE']").click()
     await page.wait_for_selector("//span[normalize-space()='Hospital Bill Details saved successfully.']")
@@ -59,7 +61,26 @@ async def claim_submitter(page):
     await page.locator("//button[normalize-space()='YES']").click()
     await asyncio.sleep(5)
 
+async def on_error(e):
+    ColourPrint.print_bg_red(e)
+    await asyncio.sleep(5)
+
+async def main_run_with_retry(main_func, on_error_func, max_retries=5):
+    attempt = 0
+    while True:
+        try:
+            await main_func()
+            break
+        except Exception as e:
+            attempt+=1
+            traceback.print_exc()
+            await on_error_func(e)
+            if max_retries and attempt >= max_retries:
+                print("❌ Reached max retries, exiting.")
+                break
+
+
 
 
 if __name__ =="__main__":
-    asyncio.run(main())
+    asyncio.run(main_run_with_retry(main_func=main, on_error_func=on_error))

@@ -78,15 +78,15 @@ def extract_date(casear):
             # yy_date = yy[4].split("-")
             # date_is = datetime.date(year=int(yy_date[2]), month=int(yy_date[1]), day=int(yy_date[0]))
             # print('....',date_is)
-            date_str = yy[4]
+            date_str = yy[2]
             # print(date_str)
             try:
                 date_is = (datetime.datetime.strptime(date_str, "%d-%m-%Y"))
             except ValueError:
                 try:
-                    date_is = (datetime.datetime.strptime(date_str, "%d-%m-%y"))
+                    date_is = (datetime.datetime.strptime(date_str, "%d/%m/%Y"))
                 except ValueError:
-                    ColourPrint.print_yellow('Date format should be separated by dash ("-")')
+                    ColourPrint.print_yellow('Date format should be separated by dash ("-") or ("/") and year should be YYYY')
                     ColourPrint.print_bg_red('Program Stopped. Restart after modifying date format')
                     sys.exit()
 

@@ -1,25 +1,31 @@
 import asyncio
 import json
+import sys
 import time
 from enum import Enum
 import openpyxl
 from playwright.async_api import async_playwright, TimeoutError, Page
 from EHOSP.ehosp_2.async_ui_entry import apply_throttle
-from dkbssy.utils.excel_utils import ExcelMethods
+from dkbssy.utils.excel_utils import ExcelMethods, get_employee_code_row_number, sqlite_process_3_by_ecode
 from EHOSP.tk_ehosp.alert_boxes import error_tk_box
 from TMS_new.async_tms_new.desired_page import get_desired_page_indexes_in_cdp_async_for_ASYNC
 from dkbssy.utils import name_for_date_check_gmc
 from dkbssy.utils.colour_prints import ColourPrint, message_box
 from dkbssy.utils.incen_percent import inc_percent_amt_calc
 from dkbssy.utils.sqlite_updation_long import sql_update_for_3
+from svnsssy.new_svnsssy.amount_update_request import main_aiohttp_optimized
 
+DUPLICATE_NAMED_CODES:dict = {
+    "Vandana Kanwar":["05170020188", "N0517466"],
+    "DEMO":['01234','56789']
+}
 
-async def _main(all_incentive_multiline:str, attach_upload_file_path:str, set_timeout_is=120_000):
+async def _main(all_incentive_multiline:str, set_timeout_is, attach_upload_file_path:str=None):
     page_indexes = await get_desired_page_indexes_in_cdp_async_for_ASYNC(user_title_of_page='Shaheed Veer Narayan Singh Ayushman Swasthya Yojna')
     # print(is_chrome_dev_open)
 
     # only for checking the approver site open
-    await get_desired_page_indexes_in_cdp_async_for_ASYNC(user_title_of_page='Shaheed Veer Narayan Singh Ayushman Swasthya Yojna', cdp_port=9223)
+    # await get_desired_page_indexes_in_cdp_async_for_ASYNC(user_title_of_page='Shaheed Veer Narayan Singh Ayushman Swasthya Yojna', cdp_port=9223)
 
     # 'Alerting the incomplete incentives'
     # stuck_display()
@@ -30,8 +36,8 @@ async def _main(all_incentive_multiline:str, attach_upload_file_path:str, set_ti
     # to_date = '31-12-2023'
     to_date = '2023-12-31'
 
-    # check upload file
-    checked_file_path = check_file_path(attach_file_path=attach_upload_file_path)
+    # check upload file -> skipping in new modified
+    # checked_file_path = check_file_path(attach_file_path=attach_upload_file_path)
     print()
 
     # splits to individual data line
@@ -58,18 +64,18 @@ async def _main(all_incentive_multiline:str, attach_upload_file_path:str, set_ti
         # ⚡ Attach dialog handler exactly once
         page.on("dialog", handle_dialog)
 
-        await apply_throttle(page=page, mode=None)
+        # await apply_throttle(page=page, mode=None)
 
         depart_choice = ExcelMethods().entry_department()
 
         # getting each incentive case number
         for idx, case_number_with_data in enumerate(incentive_cases_list, start=1):
-            case_number = retrieve_case_number(case_number_with_data)
+            case_number, amount_is = retrieve_case_number(case_number_with_data)
             ColourPrint.print_pink(f"Case Number {idx} Is:", case_number)
 
             "QUERY MODIFY IF STUCK AND NOT SHOWING IN BOTH SITES"
             ColourPrint.print_turquoise("Query Modify")
-            # query_modify = f'https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleApViewDME.aspx?ci={case_numberw}&{amount}'
+            print("CHECK IN MAIN SITE",f"https://dkbssy.cg.nic.in/secure/incentivemodule/incentivedetailsdme.aspx?c={case_number}&amt={amount_is}")
             query_modify = f'https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleApViewDME.aspx?ci={case_number}'
             ColourPrint.print_blue(query_modify)
 
@@ -81,7 +87,7 @@ async def _main(all_incentive_multiline:str, attach_upload_file_path:str, set_ti
 
             await check_already_initiated(page, case_number)  # return true
 
-            """Scrape the details odf incentive case"""
+            """Scrape the details of incentive case"""
             main_master_c_num_with_name_amt_cat_e_code =  []
             details_list = list(await scrape_incentive_case_details(page=page))
             # print(details_list)
@@ -100,12 +106,16 @@ async def _main(all_incentive_multiline:str, attach_upload_file_path:str, set_ti
             # # saving the names in Excel and DB
             # ExcelMethods().excel_save_new(main_master_c_num_with_name_amt_cat_e_code)
 
-            await submit_upload(page=page,upload_file_path=checked_file_path)
+            # await submit_upload(page=page,upload_file_path=checked_file_path)
+
+            await check_box_and_submit(page=page)
+
+            # sys.exit()
 
             Status().set_status(case_number=case_number, status_text=StatusText.INITIATED_DONE)
 
-            "APPROVER SITE WORKS"
-            await approver_raise_query(case_number=case_number)
+            # "APPROVER SITE WORKS"
+            # await approver_raise_query(case_number=case_number)
 
             "Original Site"
             await original_site_query_modify(page=page, case_number=case_number)
@@ -115,10 +125,9 @@ async def _main(all_incentive_multiline:str, attach_upload_file_path:str, set_ti
             #  [('SURINDAR LAL CHANDRA', 'डाटा एंट्री ऑपरेटर', 'DME55173655', '22.1'), ('Yamini Verma', 'डाटा एंट्री ऑपरेटर', 'DME55173200', '22.1'), ('KUMARI JYOTI LAHRE', 'डाटा एंट्री ऑपरेटर', 'DME55173036', '22.1'), ('SUMITRA KURREY', 'डाटा एंट्री ऑपरेटर', 'J55173309', '22.1'), ('Mr. Kiran Kumar Sahu', 'डाटा एंट्री ऑपरेटर', 'J55172798', '22.1'), ('K. Damodar', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020110', '1.54'), ('L.Kondiya', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020107', '1.54'), ('Bal Chainya', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020105', '1.54'), ('Smt. Shushila Bai', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020103', '1.54'), ('Ankaiya', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020093', '1.54'), ('Smt. Achamma Bai', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020090', '1.54'), ('Smt. Chandrika Bai', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020088', '1.54'), ('Mongra Tandon', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '04170150044', '1.54'), ('reman singh kanwar', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '07170250453', '1.54'), ('Mithlesh Kumar Markam', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '07170250399', '1.54'), ('V. Kondiya', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020092', '1.54'), ('Panch Ram Nirmalkar', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020091', '1.54'), ('Shri Shyam Das Mahant', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020087', '1.54'), ('Shri Amar Das', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020086', '1.54'), ('Shri Shiv Kumar Sarthi', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020084', '1.54'), ('Shri Krishna Kumar Tripathi', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020082', '1.54'), ('mohendra kumar janardan', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '04170150084', '1.54'), ('RAVINDRA KUMAR PANDEY', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '04170150035', '1.54'), ('Shri S.N.Shriwas', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020100', '1.54'), ('Shri Sunil Kumar Channe', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020099', '1.54'), ('Shri H.P.Tiwari', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020098', '1.54'), ('Shri C.P. Chandra', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020097', '1.54'), ('S SHANKAR RAO', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020189', '1.54'), ('PUSHPENDRA KUMAR', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020184', '1.54'), ('Smt.Lata Chandra', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020137', '1.54'), ('Shri Maheshwar Prasad Tandon', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020131', '1.54'), ('Anand Singh Rathiya', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517857', '1.54'), ('Smt. Sant Ram Kashyap', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', '05170020095', '1.54'), ('Komal Dewangan', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517589', '1.54'), ('PRATIBHA', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517615', '1.54'), ('BAJANTI', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517614', '1.54'), ('SUNITA RATHORE', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517613', '1.54'), ('AAKANKSHA', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517610', '1.54'), ('Mrs. ANAMIKA', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517055', '1.54'), ('Mrs. BASANTI RATHIYA', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517028', '1.54'), ('KU. PRIYA', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517136', '1.54'), ('MAHENDRA KUMAR', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N55171003', '1.54'), ('Mr. BALDEV SINGH', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517085', '1.54'), ('Mr .AVINASH KUMAR BANJARE', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517084', '1.54'), ('Mr. MONESHWAR CHANDRA RATHIYA', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517083', '1.54'), ('KUMARI SHREMATI', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517056', '1.54'), ('RAMANAND', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517042', '1.54'), ('RAJESH', 'चतुर्थ वर्ग एवं सफाई कर्मचारी', 'N5517032', '1.54'), ('Narendra Kumar Kanwar', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '04170140534', '2.95'), ('Manish Singh', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170011626', '2.95'), ('Jyoti Porte', 'नर्सिंग एवं पैरामेडिकल स्टाफ', 'N5517990', '2.95'), ('Bhanu Priya Chauhan', 'नर्सिंग एवं पैरामेडिकल स्टाफ', 'N5517989', '2.95'), ('KIRAN CHANDRA', 'नर्सिंग एवं पैरामेडिकल स्टाफ', 'N5517979', '2.95'), ('TULSI YADAV', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '0617009003', '2.95'), ('NEELIMA NISHAD', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170050074', '2.95'), ('ASHA KINDO', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '03170050126', '2.95'), ('Anita Yadav', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '22170040038', '2.95'), ('Smt. Bhavana Bansiyar', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '15170200090', '2.95'), ('Ku. Har Bai Khunte', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '14170011702', '2.95'), ('vinita tigga', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '12170050188', '2.95'), ('KU. ANJANA KUJUR', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '11170260055', '2.95'), ('SAROJ RATHOR', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '09170160077', '2.95'), ('Neelam Kanwar', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '08170040064', '2.95'), ('Smt.Nirmala Miri', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '07170250081', '2.95'), ('SMT NAMITA PATEL', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170020176', '2.95'), ('ku Kiran Sahu', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170020161', '2.95'), ('Ku.Marget Bishwash', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170020153', '2.95'), ('Ku.Jyoti Gual', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170020143', '2.95'), ('Smt Bharti Markam', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170020142', '2.95'), ('Ku. Sandhya Nair', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170020124', '2.95'), ('PREETI SONWANI', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170011771', '2.95'), ('MANJULATA KANWAR', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '04170150162', '2.95'), ('SUSHILATA RATHIYA', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '04170140436', '2.95'), ('DIPTI LAKRA', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '04170140331', '2.95'), ('Smt.DIVYA ALKA TOPPO', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '04170060068', '2.95'), ('Sanjaya Kumar Tiwari', 'नर्सिंग एवं पैरामेडिकल स्टाफ', 'N5517515', '2.95'), ('PAWAN KUMAR PATEL', 'नर्सिंग एवं पैरामेडिकल स्टाफ', 'N5517809', '2.95'), ('VANDANA SAMUEL', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '66170020614', '2.95'), ('CHANDRAKANTA SHRIVASTAV', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '66170020507', '2.95'), ('PUSHPA BAG', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '66170020500', '2.95'), ('Deepa sahu', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '66170020472', '2.95'), ('Priti Masih Upma Kumar', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '15170200071', '2.95'), ('SMT. PHULKUMARI TOPPO', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '66170020668', '2.95'), ('Smt. Sarika Tirpude Ramteke', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '66170020665', '2.95'), ('PRIYA VERMA', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '66170020641', '2.95'), ('Victoria Gardia', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '66170010273', '2.95'), ('Smt.Seema Rani Lajras', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '05170020063', '2.95'), ('Rajni Kiran Kispotta', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '11170010433', '2.95'), ('Sanjay Das Manikpuri', 'नर्सिंग एवं पैरामेडिकल स्टाफ', 'N5517599', '2.95'), ('Neelu Chaudhary', 'नर्सिंग एवं पैरामेडिकल स्टाफ', 'N5517492', '2.95'), ('Radhe Shyam Kashyap', 'नर्सिंग एवं पैरामेडिकल स्टाफ', 'AI55170022', '2.95'), ('Amarjeet Kour', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '19170040056', '2.95'), ('Smt. Varnita Zilkar', 'नर्सिंग एवं पैरामेडिकल स्टाफ', '15170200084', '2.95'), ('Dr. Priyanka Ekka', 'सभी फिजिशियन / सर्जन', '05530010030', '198.9'), ('Dr Ankita Kapoor', 'सभी फिजिशियन / सर्जन', '05530010028', '198.9'), ('DR ARUNIKA SISODIYA', 'सभी फिजिशियन / सर्जन', '05170020182', '198.9'), ('Dr. V.Agrawal', 'सभी फिजिशियन / सर्जन', '05170020043', '198.9'), ('Dr.Sumit Gupta', 'सभी फिजिशियन / सर्जन', '05170020187', '198.9'), ('MAHENDRA KUMAR', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '05170011797', '2.49'), ('dinesh kumar patel', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '09530010377', '2.49'), ('Smt.Bhagwati Koshle', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '09170010257', '2.49'), ('ARUN KUMAR KANWAR', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '07170021387', '2.49'), ('SMT DURGESHWARI KARSH', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '06170050083', '2.49'), ('SHIVSHANKAR SINGH KANWAR', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '05170060099', '2.49'), ('Shri C.L. Dixena', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '05170020117', '2.49'), ('Shri Sushil kumar miri', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '03170010366', '2.49'), ('Santosh Kumar Singh', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', 'AI55170030', '2.49'), ('Smt. Reena Verma', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', 'AI55170024', '2.49'), ('Smt. Pinky Singh', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '06170100054', '2.49'), ('Shri Dildar Sahish', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '05170020054', '2.49'), ('Haricharan Jangde', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '05170010396', '2.49'), ('Pratima Sahu', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', 'N5517593', '2.49'), ('Geeta patel', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', 'J55172863', '2.49'), ('ACHCHHE KUMAR PATLEY', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , निश्चेतना (टेक्निशियन )', '04170150173', '2.49'), ('Dr. manoj Kumar', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '05530010029', '15.47'), ('Dr. Sumit Gupta', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', 'DME55173185', '15.47'), ('Dr. Ashutosh Kumar', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', 'DME55173188', '15.47'), ('Shende Pranali kisandas', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', 'DME55172441', '15.47'), ('Vibha Tandon', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '05530010013', '15.47'), ('HANISH KUMAR CHOWDA', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '04170140518', '15.47'), ('Reena Nayak', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', 'DME55172439', '15.47'), ('Dr. Veenapani Mire', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '05530010079', '15.47'), ('Rajesh Kumar', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '05530010065', '15.47'), ('Dushyant Chandra', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '05530010031', '15.47'), ('Dr. Deepa Janghel', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '05530010026', '15.47'), ('Dr. Awadh Sahu', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', 'DME55173201', '15.47'), ('DR RAKESH KUMAR AGRAWAL', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '05170040053', '15.47'), ('GHANSHYAM SINGH JATRA', 'पैथोलॉजी ,रेडियोलॉजी , माइक्रोबायोलॉजी , बायोकेमेस्ट्री , ( फैकल्टी एंड रेसीडेंट )', '05170011289', '15.47'), ('AVINASH MESHRAM', 'अधिष्ठाता अस्पताल अधीक्षक ,सहायक अधीक्षक नोडल अधिकारी एवं सहायक नोडल अधिकारी , अस्पताल सलाहकार', '66170010023', '3.16'), ('RAVIKANT JATWAR', 'अधिष्ठाता अस्पताल अधीक्षक ,सहायक अधीक्षक नोडल अधिकारी एवं सहायक नोडल अधिकारी , अस्पताल सलाहकार', '04170140099', '3.16'), ('Dr. Rakesh Kumar Verma', 'अधिष्ठाता अस्पताल अधीक्षक ,सहायक अधीक्षक नोडल अधिकारी एवं सहायक नोडल अधिकारी , अस्पताल सलाहकार', '02530010055', '3.16'), ('Dr. Aditya Siodiya', 'अधिष्ठाता अस्पताल अधीक्षक ,सहायक अधीक्षक नोडल अधिकारी एवं सहायक नोडल अधिकारी , अस्पताल सलाहकार', '09530010327', '3.16'), ('DR.ANMOL MADHUR MINZ', 'अधिष्ठाता अस्पताल अधीक्षक ,सहायक अधीक्षक नोडल अधिकारी एवं सहायक नोडल अधिकारी , अस्पताल सलाहकार', '04170140656', '3.16'), ('Dr. Durga Shankar Patel', 'अधिष्ठाता अस्पताल अधीक्षक ,सहायक अधीक्षक नोडल अधिकारी एवं सहायक नोडल अधिकारी , अस्पताल सलाहकार', '66170010344', '3.16'), ('Dr. Gopal Singh Kanwer', 'अधिष्ठाता अस्पताल अधीक्षक ,सहायक अधीक्षक नोडल अधिकारी एवं सहायक नोडल अधिकारी , अस्पताल सलाहकार', '11170010478', '3.16')]
 
 
-
             processed_inc_names = process_scraped_data(incentive_received_data)
             print()
-            print('printing processes incentive recieved data')
+            print('printing processes incentive received data')
             # print(processed_inc_names)
 
             main_master_c_num_with_name_amt_cat_e_code.extend(processed_inc_names)
@@ -136,7 +145,10 @@ async def _main(all_incentive_multiline:str, attach_upload_file_path:str, set_ti
             Status().set_status(case_number=case_number, status_text=StatusText.EXCEL_DB_SAVED)
 
         "Updating the incentive auto 2 from db3"
-        update_sql_in_auto_2()
+        update_sql_in_auto_2_by_emp_code()
+
+        "updating auto2 globally"
+        await main_aiohttp_optimized()
 
         # await asyncio.sleep(100)
 def get_start_index(incentive_cases_list):
@@ -163,12 +175,35 @@ def stuck_display():
             if status_text != StatusText.EXCEL_DB_SAVED:
                 # print('case_data', case_number)
                 incomplete.append(case_number)
-                err_msg = "The below mentioned(s) incentive cases were not completed.\nMark them incentive query in APPROVER site and than re-initiate\n\n" + "\n".join(incomplete)
+                err_msg = "The below mentioned(s) incentive cases were not completed.\nMark them incentive query in APPROVER site and than re-initiate\n\n" + "\n".join(incomplete) + "\n\nNote: This incentive case must be first case of entry. "
                 error_tk_box(error_title='Incomplete Initiated',
                              error_message= err_msg)
-                raise PendingDeprecationWarning (err_msg)
+                raise PendingDeprecationWarning (err_msg, f'https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleApViewDME.aspx?ci={case_number}')
 
-async def stuck_resolver(case_number, status_text):
+def stuck_list():
+    status_json = r'G:\Other computers\My Computer\pythonProject\svnsssy\new_svnsssy\incentive_case_stuck_status.json'
+    with open(status_json, 'r') as file:
+        data = json.load(file)
+        incomplete = []
+
+        for case_number, status_text in data.items():
+            if status_text != StatusText.EXCEL_DB_SAVED:
+                # print('case_data', case_number)
+                incomplete.append(case_number)
+    return incomplete
+
+def stuck_display_multi():
+    incomplete = stuck_list()
+
+    incomplete_urls = '\n'.join([f'https://dkbssy.cg.nic.in/secure/incentivemodule/incentivemoduleApViewDME.aspx?ci={case_number}' for case_number in incomplete])
+
+    if incomplete:
+        err_msg = "The below mentioned(s) incentive cases were not completed.\nMark them incentive query in APPROVER site and than re-initiate\n\n" + "\n".join(incomplete) + "\n\nNote: This incentive case must be first case of entry."
+        error_tk_box(error_title='Incomplete Initiated',
+                     error_message= err_msg)
+        raise PendingDeprecationWarning (incomplete_urls)
+
+async def stuck_resolver(case_number, status_text):  # INCOMPLETE NOT USED
     status_json = r'G:\Other computers\My Computer\pythonProject\svnsssy\new_svnsssy\incentive_case_stuck_status.json'
     with open(status_json, 'r') as file:
         data = json.load(file)
@@ -221,6 +256,10 @@ async def stuck_resolver(case_number, status_text):
 
 
 def update_sql_in_auto_2():
+    """
+    Used to update the auto-2 the names returned by sql table by matching the name and row numbers of auto-2
+    :return: None
+    """
     excel_meths_obj = ExcelMethods()
     excel_path = r'G:\My Drive\GdrivePC\Hospital\RSBY\New\Incentive_auto2.xlsx'
     dict_name_row_number = excel_meths_obj.retrieve_employee_id()  # function ran
@@ -235,9 +274,92 @@ def update_sql_in_auto_2():
         worksheet_for_getting_id.cell(row=chosen_row_number, column=6).value = float(total_incentive_till_now)
         # print(employee_name, total_count_till_now, total_incentive_till_now)
 
-    ColourPrint.print_yellow('Database Done 3')
+    ColourPrint.print_yellow('Database 3 Done')
     workbook_master.save(excel_path)
     workbook_master.close()
+
+def update_sql_in_auto_2_by_emp_code():
+    excel_path = r'G:\My Drive\GdrivePC\Hospital\RSBY\New\Incentive_auto2.xlsx'
+    dict_ecode_row_number = get_employee_code_row_number(excel_path)  # getting the ecode and row number dict
+    # print(dict_ecode_row_number)
+    workbook_master = openpyxl.load_workbook(excel_path)
+    worksheet_for_getting_id = workbook_master["Sheet3"]
+
+    # updating from database
+    results = sqlite_process_3_by_ecode()
+
+    # data process for repeated double e_codes
+    for_updating_excel_data = to_update_excel_after_sum_data_of_duplicated_name(DUPLICATE_NAMED_CODES=DUPLICATE_NAMED_CODES, sql_returned_data=results)
+
+    # print(results)
+    for employee_name, ecode, total_count_till_now, total_incentive_till_now in for_updating_excel_data:
+        # print(type(ecode))
+        # print(employee_name, ecode, total_count_till_now, total_incentive_till_now)
+        chosen_row_number = dict_ecode_row_number[ecode]
+        worksheet_for_getting_id.cell(row=chosen_row_number, column=5).value = int(total_count_till_now)
+        worksheet_for_getting_id.cell(row=chosen_row_number, column=6).value = float(total_incentive_till_now)
+
+    ColourPrint.print_yellow('Database 3 Done by ecode')
+    workbook_master.save(excel_path)
+    workbook_master.close()
+
+    # print(dict_ecode_row_number)
+    # print(len(dict_ecode_row_number))
+
+def to_update_excel_after_sum_data_of_duplicated_name(DUPLICATE_NAMED_CODES, sql_returned_data)->list[list]:
+    """
+    Used for adding the same person double emp_codes datas
+    :param sql_returned_data: name,ecode,onc_count_inc_amount data
+    :param DUPLICATE_NAMED_CODES: e_codes of same person
+    :return: final lol of names with data
+    """
+    # making he master ode for the other ecode
+    ecode_to_master_mapped = {}
+    name_of_master = {}
+    for name, ecode_list in DUPLICATE_NAMED_CODES.items():
+        for ecode in ecode_list:
+            master_ecode = ecode_list[0]
+            ecode_to_master_mapped[ecode] = master_ecode
+            name_of_master[master_ecode] = name
+            # print(master_ecode)
+    # print(ecode_to_master_mapped)  # {'05170020188': '05170020188', 'N0517466': '05170020188', '01234': '01234', '56789': '01234', 'abcde': '01234'}
+    # print(name_of_master)  # {'05170020188': 'Vandana Kanwar', '01234': 'DEMO'}
+    # print()
+
+    # summing the duplicate ecode
+    summed ={}
+    for name_sql, ecode_sql, count_sql, amount_sql in sql_returned_data:
+        if ecode_sql in ecode_to_master_mapped:
+            master_for_sql = ecode_to_master_mapped[ecode_sql]
+
+            if master_for_sql not in summed:
+                summed[master_for_sql] = [count_sql,amount_sql]
+            else:
+                summed[master_for_sql][0] += count_sql
+                summed[master_for_sql][1] += amount_sql
+    # print(summed)
+
+    # formatting the combined data in format required for Excel
+    combined_data = []
+    for ecode_comb, (count_comb, amount_comb) in summed.items():
+        name_comb = name_of_master[ecode_comb]
+        combined_data.append([name_comb, ecode_comb, count_comb, amount_comb])
+    # print(combined_data)
+
+    final_list = []
+    # removing all the items of duplicate e_codes
+    for name_sql, ecode_sql, count_sql, amount_sql in sql_returned_data:
+        if ecode_sql in ecode_to_master_mapped:
+            continue
+        final_list.append([name_sql, ecode_sql, count_sql, amount_sql])
+    # print(final_list)
+    # adding the duplicated after merging the other codes in final list
+    # final_list.append(combined_data)
+    # print(final_list)
+    final_list.extend(combined_data)
+    # print(final_list)
+
+    return final_list
 
 
 
@@ -415,7 +537,12 @@ async def original_site_query_modify(page:Page, case_number):
 
     Status().set_status(case_number=case_number, status_text=StatusText.REINITIATED_CLICKED_BUT_TIMEOUT)
 
-    await page.locator("//button[normalize-space()='OK']").click()  # wait for OK button
+    try:
+        await page.locator("//button[normalize-space()='OK']").click()  # wait for OK button
+    except TimeoutError as e:
+        ColourPrint.print_pink('TIMEOUT AT SUBMIT CLICK')
+        await page.locator('//*[@id="ctl00_ContentPlaceHolder1_button_submit"]').click()
+        await page.locator("//button[normalize-space()='OK']").click()
 
     Status().set_status(case_number=case_number, status_text=StatusText.REINITIATED_COMPLETED)
 
@@ -453,6 +580,7 @@ async def entry_proper(page:Page, incentive_cat_and_names):
     number = 1
     for cat_and_names in incentive_cat_and_names:
         cat = cat_and_names[0]  # hindi category
+        # print('[[[[[[[[[[[[',cat)
         category_value = _category_all_value_pair[cat]  # hindi category value
         names = cat_and_names[1:]
         len_names = len(names)
@@ -464,12 +592,14 @@ async def entry_proper(page:Page, incentive_cat_and_names):
 
             # selection of category
             await page.select_option(_web_category_xpath,category_value)
+            # print(']]]]]]]]]]]]]]] selected the cat')
 
             # printing all options
             await page.wait_for_selector(_waiting_for_emp_name_xpath)
             options = await page.locator(_web_emp_name_xpath).all_inner_texts()
             options_in_web = [opt.strip() for opt in options[0].split('\n')]
             # print(len(options_in_web))
+            # print(options_in_web)
 
 
             # getting the names after checking the web options
@@ -489,6 +619,21 @@ async def submit_upload(page, upload_file_path):
     await page.set_input_files(_attachment_file_xpath, upload_file_path)
     # Handle alert automatically
     # page.on("dialog", lambda dialog: dialog.accept())
+    await page.locator(_submit_button_xpath).click()
+    await page.locator(_ok_button_xp).click()
+
+async def check_box_and_submit(page):
+    checkbox_1_xp = '//label[@for="ctl00_ContentPlaceHolder1_CheckBox1"]'
+    checkbox_2_xp = '//label[@for="ctl00_ContentPlaceHolder1_CheckBox2"]'
+    checkbox_3_xp = '//label[@for="ctl00_ContentPlaceHolder1_CheckBox3"]'
+    checkbox_4_xp = '//label[@for="ctl00_ContentPlaceHolder1_CheckBox4"]'
+    _submit_button_xpath = '//*[@id="ctl00_ContentPlaceHolder1_button_submit"]'
+    _ok_button_xp = "//button[normalize-space()='OK']"
+
+    await page.locator(checkbox_1_xp).click()
+    await page.locator(checkbox_2_xp).click()
+    await page.locator(checkbox_3_xp).click()
+    await page.locator(checkbox_4_xp).click()
     await page.locator(_submit_button_xpath).click()
     await page.locator(_ok_button_xp).click()
 
@@ -533,8 +678,20 @@ def selection_of_names(cat_name_list, web_name_options):
     # print(to_select)
     return to_select_label, to_select_value
 
-
-
+def check_duplicate_names(cat_and_names_list_of_list):
+    seen = []
+    dupli = []
+    for cat_and_name in cat_and_names_list_of_list:
+        for name in cat_and_name:
+            if name not in seen:
+                seen.append(name)
+            else:
+                dupli.append(name)
+    if dupli:
+        err_msg = f'The name(s)->\n\n{"\n".join(dupli)} \n\nare duplicates in Excel Sheet. Remove then restart.'
+        error_tk_box(error_message=err_msg)
+        # print('dupli', dupli)
+        raise NameError(err_msg)
 
 def get_cat_and_names_for_entry():
     work_book = openpyxl.load_workbook(r'G:\My Drive\GdrivePC\Hospital\RSBY\New\Incentive_auto_ver_3.xlsx')
@@ -546,8 +703,11 @@ def get_cat_and_names_for_entry():
     # Filter None values inside each column
     filtered_not_none_names = [[cell for cell in col if cell is not None] for col in ws_1_data_list]
     # indent_json_print(filtered_not_none_names)
-
     work_book.close()
+
+    "checking for duplicate value"
+    check_duplicate_names(filtered_not_none_names)
+
     return filtered_not_none_names
     """[
           [
@@ -636,11 +796,32 @@ def split_multiline_to_list(all_incentive_multiline:str):
 
 def retrieve_case_number(each_case_number_line_data):
     # "CASE/PS6/HOSP22G146659/CK7008808\tOphthalmology\tSICS with non-foldable IOL\t2550\t07-10-2023\tMayamati"
-    case_number_is = each_case_number_line_data.split('\t')[0]
+    case_number_is, amount = each_case_number_line_data.split('\t')[0], each_case_number_line_data.split('\t')[1]
+
     # print("case number is:", case_number_is)
-    return case_number_is
-def main(all_incentive_multiline:str, attach_upload_file_path:str):
-    asyncio.run(_main(all_incentive_multiline, attach_upload_file_path))
+    return case_number_is, amount
+
+class TempIncentiveSave:
+    TEMP_FILE_PATH = r"G:\Other computers\My Computer\pythonProject\svnsssy\new_svnsssy\temp_cases_before_db.json"
+    def save_temp_before_db(self, all_cases_data):
+        # TEMP_FILE = r"G:\Other computers\My Computer\pythonProject\svnsssy\new_svnsssy\temp_cases_before_db.json"
+        """Always save scraped data before DB write."""
+        with open(self.TEMP_FILE_PATH, "w", encoding="utf-8") as f:
+            json.dump(all_cases_data, f, indent=2, ensure_ascii=False)
+
+    def clean_temp_file(self):
+        """Clear the temp JSON file but keep the file itself."""
+        with open(self.TEMP_FILE_PATH, "w", encoding="utf-8") as f:
+            json.dump([], f, indent=4)  # write an empty JSON list
+        print("Temp JSON content cleared.")
+    def get_temp_json_data(self):
+        with open (self.TEMP_FILE_PATH, "r", encoding="utf8") as f:
+            return json.load(f)
+
+
+def main(all_incentive_multiline:str, set_timeout_is=120000):
+    asyncio.run(_main(all_incentive_multiline, set_timeout_is=set_timeout_is))
+
 
 
 if __name__ == '__main__':
@@ -654,4 +835,7 @@ if __name__ == '__main__':
     # print(s)
     # asyncio.run(stuck_resolver())
     # print(Status().get_last_initiated_done())
-    update_sql_in_auto_2()
+    # update_sql_in_auto_2()
+    # save_temp_before_db([1,2,3,4])
+    update_sql_in_auto_2_by_emp_code()
+    pass
